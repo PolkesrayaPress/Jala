@@ -82,6 +82,20 @@ code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-siz
 .btn.ghost { border-color: var(--line); color: var(--ink); }
 .btn.ghost:hover { border-color: var(--accent); }
 
+/* kotak tautan halaman ekstensi: sengaja mencolok, sama di tema terang dan gelap */
+.ext-link { background: #FFD21F; color: #111111; border: 2px solid #111111; border-radius: 12px; padding: 16px 18px; margin: 26px 0 0; max-width: 620px; box-shadow: 4px 4px 0 #111111; }
+#ext-install { margin: 0 0 32px; }
+.ext-title { margin: 0 0 8px; font: 800 1.1rem var(--f-display); }
+.ext-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.chrome-link { font: 700 1.25rem ui-monospace, "Cascadia Mono", Consolas, monospace; color: #111111; background: #FFFFFF; border: 2px solid #111111; border-radius: 8px; padding: 6px 12px; text-decoration: none; }
+.chrome-link:hover { background: #FFF6CC; }
+.copy-btn { font: 700 .95rem var(--f-body); background: #111111; color: #FFD21F; border: 2px solid #111111; border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+.copy-btn:hover { background: #333333; }
+.ext-link :focus-visible { outline: 3px solid #047D78; outline-offset: 3px; }
+.ext-hint { margin: 10px 0 0; font-size: .92rem; line-height: 1.5; }
+.ext-hint.done { font-weight: 700; }
+kbd { font: 700 .85em ui-monospace, Consolas, monospace; background: #FFFFFF; color: #111111; border: 1px solid #111111; border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; }
+
 /* hero */
 .hero { padding: 64px 0 40px; overflow: hidden; }
 .hero-in { display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; align-items: center; }

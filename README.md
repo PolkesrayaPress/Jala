@@ -29,7 +29,7 @@ JALA adalah **alat arsip pribadi** bagi setiap pengguna SRIKANDI. Setiap orang m
 
 ## Instalasi singkat
 
-1. Unduh [`docs/download/jala-arsip-v1.3.0.zip`](docs/download/jala-arsip-v1.3.0.zip), lalu ekstrak ke folder tetap, misalnya `Documents\jala`.
+1. Unduh [`docs/download/jala-arsip-v1.3.1.zip`](docs/download/jala-arsip-v1.3.0.zip), lalu ekstrak ke folder tetap, misalnya `Documents\jala`.
 2. Buka `chrome://extensions`, aktifkan **Developer mode**, klik **Load unpacked**, lalu pilih folder `jala`.
 3. Login ke SRIKANDI, tekan F5, lalu klik tombol **JALA** di kanan bawah.
 
@@ -77,6 +77,7 @@ JFT Pranata Komputer Ahli Muda, Perpustakaan Poltekkes Kemenkes Palangka Raya
 
 ## Riwayat versi
 
+- **1.3.1**: panel mengikuti warna situs dengan pilihan tema terang/gelap, judul bagian kuning dan oranye bertulisan hitam; kotak kuning alamat chrome://extensions/ di situs.
 - **1.3.0**: nama menjadi JALA Arsip; perbaikan hasil audit independen (keamanan pesan dan API, penulisan riwayat berurutan, pemantauan multi-halaman, coba ulang, filter dan indeks untuk unduh otomatis, netralisasi formula CSV, opsi privasi notifikasi, halaman Opsi).
 - **1.2.0**: nama JALA, ikon, situs dokumentasi, video panduan.
 - **1.1.0**: filter, pemantauan terjadwal, notifikasi desktop.

@@ -24,6 +24,30 @@
   play();
   document.getElementById('replay').addEventListener('click', play);
 
+  // Tautan chrome://extensions: Chrome memblokir pembukaan langsung dari situs, jadi alamat disalin
+  function copyText(t) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
+    return new Promise(function (res, rej) {
+      var ta = document.createElement('textarea'); ta.value = t; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy') ? res() : rej(); } catch (e) { rej(e); } finally { document.body.removeChild(ta); }
+    });
+  }
+  document.querySelectorAll('[data-copy]').forEach(function (el) {
+    el.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      var box = el.closest('.ext-link'), hint = box.querySelector('.ext-hint'), t = el.getAttribute('data-copy');
+      copyText(t).then(function () {
+        hint.classList.add('done');
+        hint.innerHTML = 'Alamat tersalin. Sekarang tekan <kbd>Ctrl</kbd>+<kbd>T</kbd> untuk tab baru, <kbd>Ctrl</kbd>+<kbd>V</kbd> untuk menempel, lalu <kbd>Enter</kbd>.';
+        var b = box.querySelector('.copy-btn'); b.textContent = 'Tersalin';
+        setTimeout(function () { b.textContent = 'Salin alamat'; }, 2500);
+      }, function () {
+        hint.textContent = 'Penyalinan otomatis tidak tersedia. Ketik chrome://extensions/ di address bar tab baru.';
+      });
+    });
+  });
+
   // Bab video
   var CHAPTERS = window.JALA_CHAPTERS || [];
   var video = document.getElementById('video');

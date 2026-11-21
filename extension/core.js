@@ -30,10 +30,11 @@
     dailyAt: '07:30',
     autoDownload: false,
     autoOpenTab: true,
-    notifDetail: true      // tampilkan perihal naskah di notifikasi
+    notifDetail: true,     // tampilkan perihal naskah di notifikasi
+    theme: 'auto'          // auto | light | dark untuk panel
   };
 
-  const ENUMS = { range: ['all', 'year', 'month', 'week', '30d', 'custom'], layout: ['year', 'month'], monitor: ['off', '30', '60', '180', '360', 'daily'] };
+  const ENUMS = { range: ['all', 'year', 'month', 'week', '30d', 'custom'], layout: ['year', 'month'], monitor: ['off', '30', '60', '180', '360', 'daily'], theme: ['auto', 'light', 'dark'] };
   const DATE_RE = /^(\d{4}-\d{2}-\d{2})?$/;
 
   // Hanya menerima pengaturan yang dikenal dengan tipe yang benar; selebihnya memakai nilai bawaan.

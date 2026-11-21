@@ -365,12 +365,12 @@
     if (!panel) return;
     const st = $('#srk-session');
     st.textContent = session ? 'Sesi SRIKANDI: terdeteksi' : 'Sesi SRIKANDI: belum terdeteksi, buka halaman daftar naskah';
-    st.style.color = session ? '#0a7d33' : '#b45309';
+    st.className = 'row ' + (session ? 'ok' : 'wait');
     C.SOURCES.forEach(s => {
       const b = $('#srk-st-' + s.key);
       const n = templates[s.path] ? templates[s.path].size : 0;
       b.textContent = n ? 'siap' : 'buka sekali';
-      b.style.background = n ? '#d1fae5' : '#fef3c7';
+      b.className = 'tag ' + (n ? 'ok' : 'wait');
     });
     $('#srk-go').disabled = running; $('#srk-stop').disabled = !running; $('#srk-check').disabled = running;
     const lc = $('#srk-last');
@@ -387,12 +387,21 @@
       delay: Math.max(300, Number($('#srk-delay').value) || 800),
       rows: 50,
       monitor: $('#srk-mon').value, dailyAt: $('#srk-daily').value || '07:30',
-      autoDownload: $('#srk-autodl').checked, autoOpenTab: $('#srk-autotab').checked, notifDetail: $('#srk-ndetail').checked
+      autoDownload: $('#srk-autodl').checked, autoOpenTab: $('#srk-autotab').checked, notifDetail: $('#srk-ndetail').checked,
+      theme: settings.theme
     };
+  }
+
+  function applyTheme() {
+    if (!panel) return;
+    const t = settings.theme === 'auto' ? (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : settings.theme;
+    panel.setAttribute('data-theme', t);
+    const b = $('#srk-theme'); if (b) { b.textContent = t === 'dark' ? 'Tema terang' : 'Tema gelap'; b.setAttribute('aria-label', b.textContent); }
   }
 
   function fillPanel() {
     if (!panel) return;
+    applyTheme();
     C.SOURCES.forEach(s => { $('#srk-cb-' + s.key).checked = settings.sources.includes(s.key); });
     $('#srk-range').value = settings.range; $('#srk-from').value = settings.from; $('#srk-to').value = settings.to;
     $('#srk-klas').value = settings.klas; $('#srk-kw').value = settings.keyword;
@@ -419,28 +428,42 @@
     ['srk-fab', 'srk-panel', 'srk-css'].forEach(id => { const o = document.getElementById(id); if (o) o.remove(); });
     document.head.appendChild(el('style', { id: 'srk-css' }, `
       #srk-fab{position:fixed;right:18px;bottom:18px;z-index:2147483646;background:#047D78;color:#fff;border:0;border-radius:24px;padding:10px 16px;font:600 13px system-ui;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}
-      #srk-panel{position:fixed;right:18px;bottom:66px;width:460px;max-height:84vh;overflow:auto;z-index:2147483647;background:#fff;color:#111;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);font:13px system-ui;padding:14px;display:none}
-      #srk-panel h3{margin:0 0 4px;font-size:15px;color:#047D78}
-      #srk-panel h4{margin:12px 0 4px;font-size:12px;color:#fff;background:#047D78;padding:3px 8px;border-radius:4px}
-      #srk-panel h4.mon{background:#7f8a00}
+      #srk-panel{--bg:#FFFFFF;--ink:#0F2E2C;--muted:#47625F;--line:#CFE3E0;--accent:#047D78;--accent-ink:#FFFFFF;--field:#FFFFFF;--soft:#F2F7F6;--ok-bg:#D7F2EE;--ok-ink:#035E5A;--wait-bg:#FFF3C4;--wait-ink:#5C4400;
+        position:fixed;right:18px;bottom:66px;width:470px;max-height:84vh;overflow:auto;z-index:2147483647;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.3);font:13px system-ui,"Segoe UI",sans-serif;padding:14px;display:none}
+      #srk-panel[data-theme=dark]{--bg:#0B3431;--ink:#E4F3F1;--muted:#9CC3BE;--line:#17504C;--accent:#00B9AD;--accent-ink:#032B29;--field:#062523;--soft:#082D2B;--ok-bg:#0F4A45;--ok-ink:#7FE6DC;--wait-bg:#4A3B00;--wait-ink:#FFE27A}
+      #srk-panel .head{display:flex;align-items:flex-start;gap:10px}
+      #srk-panel h3{margin:0 0 2px;font-size:16px;color:var(--accent)}
+      #srk-panel #srk-theme{margin-left:auto;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:16px;padding:4px 10px;font:600 12px system-ui;cursor:pointer}
+      #srk-panel h4{margin:14px 0 6px;font-size:12.5px;color:#111111;background:#FFD21F;padding:4px 9px;border-radius:5px}
+      #srk-panel h4.mon{background:#FF9F1C}
       #srk-panel .row{display:flex;align-items:center;gap:6px;margin:4px 0;flex-wrap:wrap}
-      #srk-panel .tag{font-size:11px;padding:1px 6px;border-radius:8px;margin-left:auto}
-      #srk-panel a{color:#047D78}
+      #srk-panel .tag{font-size:11px;padding:1px 7px;border-radius:8px;margin-left:auto;font-weight:600}
+      #srk-panel .tag.ok{background:var(--ok-bg);color:var(--ok-ink)}
+      #srk-panel .tag.wait{background:var(--wait-bg);color:var(--wait-ink)}
+      #srk-panel a{color:var(--accent)}
+      #srk-panel input,#srk-panel select{background:var(--field);color:var(--ink);border:1px solid var(--line);border-radius:4px}
+      #srk-panel input[type=checkbox]{accent-color:var(--accent)}
       #srk-panel input[type=number]{width:70px;padding:2px 4px}
       #srk-panel input[type=text]{flex:1;min-width:150px;padding:3px 5px}
       #srk-panel select,#srk-panel input[type=date],#srk-panel input[type=time]{padding:2px 4px}
-      #srk-panel button.act{padding:6px 12px;border-radius:6px;border:0;font-weight:600;cursor:pointer}
+      #srk-panel button.act{padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-weight:600;cursor:pointer}
+      #srk-panel button.act.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+      #srk-panel button.act.warn{background:#FF9F1C;color:#111111;border-color:#FF9F1C}
       #srk-panel button.act:disabled{opacity:.5;cursor:default}
-      #srk-log{height:170px;overflow:auto;background:#0f172a;color:#e2e8f0;font:11px ui-monospace,monospace;padding:6px;border-radius:6px;margin-top:8px;white-space:pre-wrap}
-      #srk-panel .note{font-size:11px;color:#475569}
-      #srk-panel .credit{white-space:pre-line;font-size:10.5px;line-height:1.45;color:#64748b;border-top:1px solid #e2e8f0;margin-top:10px;padding-top:8px}
-      #srk-panel .sub{font-size:12px;color:#047D78;margin:-2px 0 4px}`));
+      #srk-panel :focus-visible{outline:2px solid #FFD21F;outline-offset:2px}
+      #srk-log{height:170px;overflow:auto;background:#062523;color:#CFE9E5;font:11px ui-monospace,monospace;padding:6px;border-radius:6px;margin-top:8px;white-space:pre-wrap;border:1px solid var(--line)}
+      #srk-panel .note{font-size:11px;color:var(--muted)}
+      #srk-panel .credit{white-space:pre-line;font-size:10.5px;line-height:1.45;color:var(--muted);border-top:1px solid var(--line);margin-top:10px;padding-top:8px}
+      #srk-panel .sub{font-size:12px;color:var(--muted);margin:0 0 4px}
+      #srk-session.ok{color:var(--ok-ink)} #srk-session.wait{color:var(--wait-ink)}`));
 
     const fab = el('button', { id: 'srk-fab', title: 'JALA Arsip: salinan arsip pribadi pengguna SRIKANDI' });
     fab.innerHTML = '<svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-4px;margin-right:6px"><path d="M8 2.6 L3 11.6 M8 2.6 L13 11.6 M8 2.6 V12.3 M4.9 8.2 Q8 9.4 11.1 8.2" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><circle cx="3.2" cy="12.2" r="1.7" fill="#CDDC29"/><circle cx="8" cy="13.1" r="1.7" fill="#CDDC29"/><circle cx="12.8" cy="12.2" r="1.7" fill="#CDDC29"/></svg>JALA';
     panel = el('div', { id: 'srk-panel' });
-    panel.append(el('h3', {}, 'JALA Arsip v1.3'),
-      el('div', { className: 'sub' }, 'Salinan arsip pribadi untuk pengguna SRIKANDI'),
+    const themeBtn = el('button', { id: 'srk-theme', type: 'button' }, 'Tema gelap');
+    const headTxt = el('div'); headTxt.append(el('h3', {}, 'JALA Arsip v1.3'), el('div', { className: 'sub' }, 'Salinan arsip pribadi untuk pengguna SRIKANDI'));
+    const head = el('div', { className: 'head' }); head.append(headTxt, themeBtn);
+    panel.append(head,
       el('div', { className: 'note' }, 'Hanya membaca. Salinan PDF disimpan di Downloads/' + C.ROOT_FOLDER + '.'),
       el('div', { id: 'srk-session', className: 'row' }));
 
@@ -465,8 +488,8 @@
     panel.append(row(el('span', {}, 'Unduhan bersamaan'), conc, el('span', {}, 'Jeda (ms)'), el('input', { type: 'number', id: 'srk-delay', value: 800, min: 300 })));
     const test = el('input', { type: 'checkbox', id: 'srk-test', checked: true });
     panel.append(row(test, el('label', { htmlFor: 'srk-test' }, 'Mode uji: berhenti setelah 5 naskah')));
-    const go = el('button', { id: 'srk-go', className: 'act', style: 'background:#047D78;color:#fff' }, 'Mulai unduh');
-    const stop = el('button', { id: 'srk-stop', className: 'act', style: 'background:#e2e8f0' }, 'Berhenti');
+    const go = el('button', { id: 'srk-go', className: 'act primary' }, 'Mulai unduh');
+    const stop = el('button', { id: 'srk-stop', className: 'act' }, 'Berhenti');
     panel.append(row(go, stop), el('div', { className: 'note' }, 'Riwayat unduhan diatur di halaman Opsi: klik kanan ikon JALA Arsip di toolbar Chrome, lalu pilih Opsi.'));
 
     // Pemantauan
@@ -481,8 +504,8 @@
     panel.append(row(autotab, el('label', { htmlFor: 'srk-autotab' }, 'Buka tab SRIKANDI di latar belakang bila tertutup')));
     const ndet = el('input', { type: 'checkbox', id: 'srk-ndetail', checked: true });
     panel.append(row(ndet, el('label', { htmlFor: 'srk-ndetail' }, 'Tampilkan perihal naskah di notifikasi (matikan bila sering berbagi layar)')));
-    const checkBtn = el('button', { id: 'srk-check', className: 'act', style: 'background:#7f8a00;color:#fff' }, 'Periksa sekarang');
-    const testN = el('button', { id: 'srk-testn', className: 'act', style: 'background:#fff;border:1px solid #cbd5e1' }, 'Tes notifikasi');
+    const checkBtn = el('button', { id: 'srk-check', className: 'act warn' }, 'Periksa sekarang');
+    const testN = el('button', { id: 'srk-testn', className: 'act' }, 'Tes notifikasi');
     panel.append(row(checkBtn, testN), el('div', { id: 'srk-last', className: 'note' }, 'Belum pernah memeriksa'),
       el('div', { className: 'note' }, 'Pemeriksaan berjalan selama komputer menyala, Chrome terbuka, dan sesi SRIKANDI masih aktif. Pemeriksaan pertama per sumber hanya mencatat data awal tanpa notifikasi.'));
 
@@ -492,6 +515,10 @@
       el('div', { className: 'credit' }, 'Dikembangkan oleh Deddy Eko Heryanto, S.T.\nJFT Pranata Komputer Ahli Muda, Perpustakaan Poltekkes Kemenkes Palangka Raya\nAlat arsip pribadi. Bukan produk resmi ANRI.'));
 
     // Peristiwa
+    themeBtn.onclick = () => {
+      settings.theme = panel.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(); saveSettings();
+    };
     fab.onclick = () => { panel.style.display = panel.style.display === 'block' ? 'none' : 'block'; refreshPanel(); };
     panel.querySelectorAll('input,select').forEach(x => { if (x.id !== 'srk-test') x.addEventListener('change', saveSettings); });
     go.onclick = () => {
