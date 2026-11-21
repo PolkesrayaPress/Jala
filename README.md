@@ -29,7 +29,10 @@ JALA adalah **alat arsip pribadi** bagi setiap pengguna SRIKANDI. Setiap orang m
 
 ## Instalasi singkat
 
-1. Unduh [`docs/download/jala-arsip-v1.3.1.zip`](docs/download/jala-arsip-v1.3.0.zip), lalu ekstrak ke folder tetap, misalnya `Documents\jala`.
+> **ID ekstensi tetap: `bgpfanedbfemacdgbgbnhmjmgaaahagp`.** Memasang dari folder lain menggantikan JALA 1.4 atau lebih baru yang sudah terpasang. Hapus dulu versi sebelum 1.4 di `chrome://extensions`, karena versi lama memakai ID berbeda dan akan tetap terpasang berdampingan.
+
+
+1. Unduh [`docs/download/jala-arsip-v1.4.1.zip`](docs/download/jala-arsip-v1.4.1.zip), lalu ekstrak ke folder tetap, misalnya `Documents\jala`.
 2. Buka `chrome://extensions`, aktifkan **Developer mode**, klik **Load unpacked**, lalu pilih folder `jala`.
 3. Login ke SRIKANDI, tekan F5, lalu klik tombol **JALA** di kanan bawah.
 
@@ -49,7 +52,9 @@ Panduan lengkap dan video ada di situs dokumentasi (folder `docs/`) dan di [`ext
 
 - Header sesi hanya dikirim ke `https://api.arsip.go.id`. Alamat lain ditolak sebelum permintaan dibuat.
 - Unduhan hanya diterima dari `https://s3.arsip.go.id` dan hanya ke dalam folder `SRIKANDI_ARSIP`.
-- Halaman web hanya bisa mengubah pengaturan yang sudah divalidasi. Menghapus riwayat hanya bisa dari halaman Opsi ekstensi.
+- Halaman web hanya bisa mengubah pengaturan yang sudah divalidasi. Menghapus, mengekspor, dan mengimpor riwayat hanya bisa dari halaman Opsi ekstensi.
+- Token sesi dikunci pada token pertama di setiap halaman. Bila token berubah, JALA berhenti dan meminta halaman dimuat ulang.
+- Hanya lima jenis permintaan baca ke `api.arsip.go.id` yang diizinkan (daftar naskah, master klasifikasi, alamat unduhan, isi berkas naskah masuk). Permintaan lain ditolak sebelum dikirim.
 - Tidak ada layanan AI, server perantara, atau analitik.
 
 ## Struktur repositori
@@ -77,6 +82,8 @@ JFT Pranata Komputer Ahli Muda, Perpustakaan Poltekkes Kemenkes Palangka Raya
 
 ## Riwayat versi
 
+- **1.4.1**: judul bagian panel dan halaman Opsi berwarna kuning seragam dengan tulisan hitam; halaman Opsi mengikuti tema terang/gelap; perbaikan tautan unduhan di README.
+- **1.4.0**: gabungan dengan revisi ChatGPT 1.3.0. ID ekstensi tetap (bgpfanedbfemacdgbgbnhmjmgaaahagp); peringatan bila ada dua JALA terpasang; ekspor/impor riwayat; token sesi dikunci per halaman (menutup celah injeksi token yang ada di 1.3.1 maupun kandidat ChatGPT 1.3.0); validasi API per metode dan path, `redirect: error`, `credentials: omit`; Stop membatalkan permintaan; coba ulang maksimal 5 kali dengan jeda 30 sampai 240 menit; service worker menandai unduhan selesai dan merekonsiliasi setelah hidup ulang; maksimal 100 unduhan otomatis per pemeriksaan; PDF menimpa berkas bernama sama.
 - **1.3.1**: panel mengikuti warna situs dengan pilihan tema terang/gelap, judul bagian kuning dan oranye bertulisan hitam; kotak kuning alamat chrome://extensions/ di situs.
 - **1.3.0**: nama menjadi JALA Arsip; perbaikan hasil audit independen (keamanan pesan dan API, penulisan riwayat berurutan, pemantauan multi-halaman, coba ulang, filter dan indeks untuk unduh otomatis, netralisasi formula CSV, opsi privasi notifikasi, halaman Opsi).
 - **1.2.0**: nama JALA, ikon, situs dokumentasi, video panduan.

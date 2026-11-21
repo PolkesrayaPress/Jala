@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "JALA Arsip",
-  "version": "1.3.1",
+  "version": "1.4.1",
   "description": "Salinan arsip pribadi pengguna SRIKANDI: PDF tersusun per tahun dan klasifikasi, plus notifikasi naskah baru. Bukan produk ANRI.",
   "permissions": [
     "downloads",
@@ -54,5 +54,6 @@
   ],
   "short_name": "JALA Arsip",
   "author": "Deddy Eko Heryanto, S.T.",
-  "options_page": "options.html"
+  "options_page": "options.html",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvRoiEYTJ8gaxSkTOD8322cePGO98fX9yW5grlHB6Rr8MND8qwhwGX9YIHO/oK1cubcH0bXup6Qbu4xo5tpOOqK0IBU6PkUIlAhsfsWbTLkjR0iRNRk3dJdKWSOti0Z61lGAI7gQv12CK1zSXBNaBGCLSRz9dVYIBQRuehpEGRhVFyBuIGb2ZGNUIj7+CmN3jDM5QGd5/bYKt3e+qTcGTTL9TU7Iyp49x0po+VVmv+wChqyVObkVho6gzcBTOslxY+RNrohJ0HeBaaXzLeQXLspDJUqsZIIRnXU9Cl+WOYzowy2D+eDD1m23S+pZBKC3FkKiURp/hq6UVWKOSzbJ+RwIDAQAB"
 }

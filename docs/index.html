@@ -54,7 +54,7 @@
         <h1>Naskah SRIKANDI Anda, tersalin rapi di laptop sendiri.</h1>
         <p class="lead">JALA Arsip adalah ekstensi Chrome yang mengunduh salinan PDF naskah masuk dan keluar dari akun SRIKANDI Anda, lalu menyusunnya per tahun dan klasifikasi. JALA juga memberi tahu lewat notifikasi desktop bila ada naskah baru.</p>
         <div class="cta">
-          <a class="btn primary" href="download/jala-arsip-v1.3.1.zip" download>Unduh JALA Arsip 1.3</a>
+          <a class="btn primary" href="download/jala-arsip-v1.4.1.zip" download>Unduh JALA Arsip 1.4.1</a>
           <a class="btn ghost" href="#instalasi">Lihat cara memasang</a>
         </div>
         <div class="ext-link" id="ext-hero">
@@ -202,6 +202,9 @@
         <details><summary>Muncul notifikasi "Sesi SRIKANDI habis"</summary><p>Login ulang ke SRIKANDI di Chrome. Pemeriksaan berikutnya akan berjalan normal. JALA tidak bisa login sendiri karena memang tidak menyimpan kata sandi.</p></details>
         <details><summary>Notifikasi tidak muncul</summary><p>Klik Tes notifikasi di panel JALA. Kalau tetap tidak muncul, buka Settings Windows, lalu System, Notifications, dan pastikan Google Chrome aktif serta mode Do not disturb mati.</p></details>
         <details><summary>Pemeriksaan otomatis tidak berjalan</summary><p>Pemeriksaan hanya berjalan saat komputer menyala dan Chrome terbuka. Kalau laptop tidur atau Chrome ditutup, pemeriksaan dilanjutkan pada jadwal berikutnya.</p></details>
+        <details><summary>Versi lama tidak hilang setelah memasang dari folder lain</summary><p>Versi sebelum 1.4 belum punya ID tetap, jadi setiap folder dianggap ekstensi berbeda. Buka chrome://extensions dan klik Remove pada semua JALA versi lama. Mulai 1.4, ID-nya tetap (bgpfanedbfemacdgbgbnhmjmgaaahagp), sehingga memasang dari folder lain langsung menggantikan versi sebelumnya.</p></details>
+        <details><summary>Halaman Opsi menampilkan "Your file couldn't be accessed"</summary><p>JALA itu terpasang dari folder yang sudah dipindah, dihapus, atau isinya ditimpa versi lain. Hapus entrinya di chrome://extensions, lalu pasang ulang dari folder yang tetap dan jangan dipindahkan selama JALA dipakai.</p></details>
+        <details><summary>Panel menampilkan "Sesi berubah: muat ulang halaman"</summary><p>JALA mendeteksi token sesi yang berbeda di halaman yang sama dan berhenti demi keamanan. Tekan F5 di tab SRIKANDI, lalu jalankan lagi.</p></details>
         <details><summary>Apakah JALA tetap jalan bila saya pindah tab atau membuka Word?</summary><p>Ya. Pindah tab atau membuka aplikasi lain seperti Word tidak menghentikan JALA, selama Chrome tetap terbuka dan tab SRIKANDI tidak ditutup. Tab di latar belakang bisa berjalan lebih lambat.</p></details>
         <details><summary>Bagaimana bila tab SRIKANDI tertutup saat unduhan berjalan?</summary><p>Antrean unduhan ikut berhenti. File yang sudah selesai tetap ada. Buka lagi SRIKANDI, klik JALA, lalu klik Mulai unduh: file yang sudah tersimpan dilewati dan proses dilanjutkan. Untuk pemantauan terjadwal, JALA bisa membuka tab SRIKANDI sendiri di latar belakang bila opsi itu aktif.</p></details>
         <details><summary>Apakah pemeriksaan tetap jalan saat laptop tidur atau Chrome ditutup?</summary><p>Tidak. JALA tidak membangunkan komputer. Pemeriksaan dilanjutkan pada jadwal berikutnya setelah Chrome kembali aktif.</p></details>
@@ -247,7 +250,7 @@
         <p>JFT Pranata Komputer Ahli Muda, Perpustakaan Poltekkes Kemenkes Palangka Raya</p>
       </div>
     </div>
-    <p class="legal">JALA Arsip 1.3.1, lisensi MIT. SRIKANDI adalah aplikasi milik Arsip Nasional Republik Indonesia. JALA Arsip adalah alat arsip pribadi yang dibuat secara mandiri dan tidak berafiliasi dengan ANRI.</p>
+    <p class="legal">JALA Arsip 1.4.1, lisensi MIT. SRIKANDI adalah aplikasi milik Arsip Nasional Republik Indonesia. JALA Arsip adalah alat arsip pribadi yang dibuat secara mandiri dan tidak berafiliasi dengan ANRI.</p>
   </div>
 </footer>
 

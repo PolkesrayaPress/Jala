@@ -1,4 +1,4 @@
-/* JALA Arsip v1.3 - service worker.
+/* JALA Arsip v1.4.1 - service worker.
  * Unduhan, penyimpanan riwayat/pengaturan, jadwal pemeriksaan, notifikasi desktop. */
 'use strict';
 importScripts('core.js');
@@ -59,12 +59,32 @@ function waitForDownload(id, timeoutMs) {
   });
 }
 
-async function download(url, filename) {
+// Unduhan yang sedang berjalan dicatat agar tetap dapat ditandai selesai walau service worker
+// sempat berhenti di tengah transfer (gabungan dari audit ChatGPT F07).
+function pendingSet(id, val) { return serial(async () => { const p = (await get('srk_pending')) || {}; if (val) p[id] = val; else delete p[id]; await set({ srk_pending: p }); }); }
+async function reconcilePending() {
+  const p = (await get('srk_pending')) || {};
+  for (const id of Object.keys(p)) {
+    const items = await chrome.downloads.search({ id: Number(id) });
+    const it = items && items[0];
+    if (!it || it.state === 'interrupted') await pendingSet(id, null);
+    else if (it.state === 'complete') { await addToSet('srk_done_keys', [p[id].key]); await pendingSet(id, null); }
+  }
+}
+chrome.downloads.onChanged.addListener(d => { if (d.state && d.state.current !== 'in_progress') reconcilePending().catch(() => {}); });
+reconcilePending().catch(() => {});
+
+async function download(url, filename, key) {
   const u = new URL(url);
   if (u.protocol !== 'https:' || u.host !== ALLOWED_DL_HOST) throw new Error('Alamat unduhan di luar ' + ALLOWED_DL_HOST);
   if (!C.isSafeDownloadName(filename, false)) throw new Error('Nama file di luar folder SRIKANDI_ARSIP ditolak');
-  const id = await chrome.downloads.download({ url, filename, conflictAction: 'uniquify', saveAs: false });
-  return { filename: (await waitForDownload(id, 180000)) || filename };
+  // PDF menimpa berkas bernama sama: nama dibentuk dari tanggal, nomor, dan hal, jadi pengunduhan ulang
+  // (misalnya setelah pindah folder ekstensi) tidak menghasilkan salinan ganda 'nama (1).pdf'.
+  const id = await chrome.downloads.download({ url, filename, conflictAction: 'overwrite', saveAs: false });
+  if (key) await pendingSet(id, { key, filename, at: Date.now() });
+  const full = await waitForDownload(id, 180000);
+  if (key) { await addToSet('srk_done_keys', [key]); await pendingSet(id, null); }
+  return { filename: full || filename };
 }
 
 async function saveText(filename, text, mime) {
@@ -136,6 +156,7 @@ async function handleCheckResult(r, tabId) {
     chrome.tabs.remove(tabId).catch(() => {});
     chrome.storage.session.remove('srk_auto_tab');
   }
+  if (r.error === 'session-changed') { await notify('srk-session', 'JALA Arsip berhenti', 'Sesi di tab SRIKANDI berubah. Muat ulang tab SRIKANDI (F5) agar pemeriksaan berjalan lagi.'); return; }
   if (r.error === 'session') {
     const last = (await get('srk_session_warned')) || 0;
     if (r.manual || Date.now() - last > 6 * 3600 * 1000) {
@@ -162,9 +183,24 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   if (sender.id === chrome.runtime.id && sender.url && sender.url.startsWith(OPTIONS_URL)) {
     const ops = {
       resetDone: () => serial(() => chrome.storage.local.remove('srk_done_keys')).then(() => true),
-      resetKnown: () => serial(() => chrome.storage.local.remove(['srk_known', 'srk_baseline', 'srk_retry'])).then(() => true),
+      resetKnown: () => serial(() => chrome.storage.local.remove(['srk_known', 'srk_baseline', 'srk_retry', 'srk_retry_dead'])).then(() => true),
       resetTemplates: () => serial(() => chrome.storage.local.remove('srk_templates')).then(() => true),
-      stats: async () => ({ done: ((await get('srk_done_keys')) || []).length, known: ((await get('srk_known')) || []).length, retry: ((await get('srk_retry')) || []).length, templates: Object.values((await get('srk_templates')) || {}).reduce((a, b) => a + b.length, 0), last: (await get('srk_last_check')) || null })
+      stats: async () => ({ done: ((await get('srk_done_keys')) || []).length, known: ((await get('srk_known')) || []).length, retry: Object.keys((await get('srk_retry')) || {}).length, dead: ((await get('srk_retry_dead')) || []).length, templates: Object.values((await get('srk_templates')) || {}).reduce((a, b) => a + b.length, 0), last: (await get('srk_last_check')) || null, id: chrome.runtime.id, version: chrome.runtime.getManifest().version }),
+      exportData: async () => ({ app: 'JALA Arsip', format: 1, version: chrome.runtime.getManifest().version, exported: new Date().toISOString(),
+        data: await chrome.storage.local.get(['srk_done_keys', 'srk_known', 'srk_baseline', 'srk_settings', 'srk_templates']) }),
+      importData: () => serial(async () => {
+        const d = msg.payload && msg.payload.data;
+        if (!msg.payload || msg.payload.app !== 'JALA Arsip' || !d || typeof d !== 'object') throw new Error('Berkas bukan cadangan JALA Arsip');
+        const merge = async k => { if (Array.isArray(d[k])) { const cur = new Set((await get(k)) || []); d[k].filter(x => typeof x === 'string' && x.length < 600).forEach(x => cur.add(x)); await set({ [k]: [...cur] }); } };
+        for (const k of ['srk_done_keys', 'srk_known', 'srk_baseline']) await merge(k);
+        if (d.srk_settings) await set({ srk_settings: C.sanitizeSettings(d.srk_settings) });
+        if (d.srk_templates && typeof d.srk_templates === 'object') {
+          const t = (await get('srk_templates')) || {};
+          Object.keys(d.srk_templates).forEach(path => (d.srk_templates[path] || []).forEach(url => { if (C.isValidTemplate(path, url)) { t[path] = t[path] || []; if (!t[path].includes(url)) t[path].push(url); } }));
+          await set({ srk_templates: t });
+        }
+        return { done: ((await get('srk_done_keys')) || []).length };
+      })
     };
     const job = ops[msg.type] ? ops[msg.type]() : Promise.reject(new Error('Perintah tidak dikenal'));
     Promise.resolve(job).then(data => send({ ok: true, data })).catch(e => send({ ok: false, error: e.message }));
@@ -175,18 +211,26 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
   const tabId = sender.tab && sender.tab.id;
   const onlySrk = o => Object.fromEntries(Object.entries(o || {}).filter(([k]) => k.startsWith('srk_')));
   const jobs = {
-    download: () => download(p.url, p.filename),
+    download: () => download(p.url, p.filename, typeof p.key === 'string' ? p.key.slice(0, 600) : null),
     saveText: () => saveText(p.filename, p.text, p.mime),
     getDone: async () => (await get('srk_done_keys')) || [],
     markDone: () => addToSet('srk_done_keys', p.keys),
-    getKV: async () => onlySrk(await chrome.storage.local.get((p.keys || []).filter(k => ['srk_templates', 'srk_settings', 'srk_last_check', 'srk_known', 'srk_baseline', 'srk_retry'].includes(k)))),
+    getKV: async () => onlySrk(await chrome.storage.local.get((p.keys || []).filter(k => ['srk_templates', 'srk_settings', 'srk_last_check', 'srk_known', 'srk_baseline', 'srk_retry', 'srk_retry_dead'].includes(k)))),
     setKV: () => serial(() => set({ srk_settings: C.sanitizeSettings(p.obj && p.obj.srk_settings) })).then(() => true),
     saveTemplate: () => saveTemplate(p.path, p.url),
     addKnown: async () => { await addToSet('srk_known', p.keys); await addToSet('srk_baseline', p.baseline); return true; },
     updRetry: () => serial(async () => {
-      const cur = new Set((await get('srk_retry')) || []);
-      (p.add || []).forEach(k => cur.add(k)); (p.remove || []).forEach(k => cur.delete(k));
-      await set({ srk_retry: [...cur] }); return cur.size;
+      // Maksimum 5 percobaan dengan jeda 30, 60, 120, 240 menit; setelah itu masuk daftar tinjauan manual.
+      let cur = (await get('srk_retry')) || {};
+      if (Array.isArray(cur)) cur = Object.fromEntries(cur.map(k => [k, { n: 1, next: 0 }]));
+      const dead = (await get('srk_retry_dead')) || [];
+      (p.add || []).forEach(k => {
+        const n = ((cur[k] && cur[k].n) || 0) + 1;
+        if (n > 5) { delete cur[k]; if (!dead.includes(k)) dead.push(k); }
+        else cur[k] = { n, next: Date.now() + 30 * 60000 * Math.pow(2, n - 1) };
+      });
+      (p.remove || []).forEach(k => { delete cur[k]; });
+      await set({ srk_retry: cur, srk_retry_dead: dead.slice(-500) }); return Object.keys(cur).length;
     }),
     applySchedule: () => schedule(),
     checkResult: () => handleCheckResult(p, tabId).then(() => true),

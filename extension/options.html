@@ -4,26 +4,35 @@
 <meta charset="utf-8">
 <title>Opsi JALA Arsip</title>
 <style>
-  body{font:14px/1.6 system-ui,"Segoe UI",sans-serif;color:#0F2E2C;background:#F2F7F6;margin:0;padding:32px}
-  main{max-width:640px;margin:0 auto;background:#fff;border:1px solid #CFE3E0;border-radius:12px;padding:24px 28px}
-  h1{font-size:20px;color:#047D78;margin:0 0 4px}
-  h2{font-size:15px;margin:22px 0 6px}
-  p{margin:4px 0 10px;color:#47625F}
-  button{padding:7px 14px;border-radius:6px;border:1px solid #CFE3E0;background:#fff;font-weight:600;cursor:pointer}
-  button.danger{border-color:#e7b3b3;color:#9b1c1c}
+  :root{--bg:#F2F7F6;--card:#FFFFFF;--ink:#0F2E2C;--muted:#47625F;--line:#CFE3E0;--accent:#047D78;--btn:#FFFFFF;--danger:#9B1C1C;--danger-line:#E7B3B3}
+  :root[data-theme=dark]{--bg:#062523;--card:#0B3431;--ink:#E4F3F1;--muted:#9CC3BE;--line:#17504C;--accent:#00B9AD;--btn:#082D2B;--danger:#FF9C9C;--danger-line:#7A3B3B}
+  body{font:14px/1.6 system-ui,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg);margin:0;padding:32px}
+  main{max-width:640px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px 28px}
+  h1{font-size:20px;color:var(--accent);margin:0 0 4px}
+  h2{font-size:13px;margin:22px 0 8px;background:#FFD21F;color:#111111;padding:4px 9px;border-radius:5px}
+  p{margin:4px 0 10px;color:var(--muted)}
+  button{padding:7px 14px;border-radius:6px;border:1px solid var(--line);background:var(--btn);color:var(--ink);font-weight:600;cursor:pointer}
+  button.danger{border-color:var(--danger-line);color:var(--danger)}
+  button:focus-visible{outline:2px solid #FFD21F;outline-offset:2px}
   dl{display:grid;grid-template-columns:220px 1fr;gap:4px 12px;margin:0}
-  dt{color:#47625F} dd{margin:0;font-weight:600}
-  #msg{margin-top:16px;font-weight:600;color:#047D78}
-  footer{margin-top:24px;font-size:12px;color:#47625F;border-top:1px solid #CFE3E0;padding-top:12px}
+  dt{color:var(--muted)} dd{margin:0;font-weight:600}
+  #msg{margin-top:16px;font-weight:600;color:var(--accent)}
+  .top{display:flex;align-items:flex-start;gap:12px}
+  #theme{margin-left:auto;border-radius:16px;padding:4px 10px;font-size:12px}
+  footer{margin-top:24px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
 </style>
 </head>
 <body>
 <main>
-  <h1>Opsi JALA Arsip</h1>
+  <div class="top"><div><h1>Opsi JALA Arsip</h1><p id="ver"></p></div><button id="theme" type="button">Tema gelap</button></div>
   <p>Halaman ini hanya bisa dibuka dari Chrome, bukan dari situs mana pun. Karena itu tombol penghapus riwayat ditempatkan di sini.</p>
 
   <h2>Ringkasan</h2>
   <dl id="stats"><dt>Memuat...</dt><dd></dd></dl>
+
+  <h2>Pindahkan riwayat dari pemasangan lain</h2>
+  <p>Gunakan bila JALA pernah dipasang dari folder lain. Di JALA lama: klik Ekspor riwayat. Di JALA ini: klik Impor riwayat dan pilih berkas tersebut. Riwayat digabung, tidak ditimpa.</p>
+  <p><button id="export">Ekspor riwayat (.json)</button> <button id="importBtn">Impor riwayat</button> <input type="file" id="importFile" accept="application/json,.json" hidden></p>
 
   <h2>Lupakan riwayat unduhan</h2>
   <p>Pada proses berikutnya JALA akan mengunduh ulang semua naskah. File di laptop tidak dihapus.</p>

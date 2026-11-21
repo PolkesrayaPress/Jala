@@ -1,4 +1,4 @@
-/* JALA Arsip v1.3 - berjalan di halaman SRIKANDI (MAIN world).
+/* JALA Arsip v1.4.1 - berjalan di halaman SRIKANDI (MAIN world).
  * Prinsip:
  *  - Hanya membaca: daftar naskah, master klasifikasi, dan URL unduhan berkas.
  *    Tidak pernah memanggil endpoint tanda tangan, verifikasi, disposisi, atau pemberkasan.
@@ -8,6 +8,8 @@
  */
 (function () {
   'use strict';
+  // Bila ada dua salinan JALA terpasang (misalnya dimuat dari dua folder), hanya satu yang bekerja dan panel memberi peringatan.
+  window.__jalaInstances = (window.__jalaInstances || 0) + 1;
   if (window.__srkAgentLoaded) return;
   window.__srkAgentLoaded = true;
 
@@ -15,7 +17,7 @@
   const API = 'https://api.arsip.go.id';
   const BUCKET = 'srikandi-prod';
 
-  let session = null;
+  let session = null, sessionConflict = false, abortCtl = null;
   const sessionWaiters = [];
   const templates = {};             // path API -> Map(url)
   const klCache = new Map();
@@ -48,8 +50,10 @@
   XMLHttpRequest.prototype.setRequestHeader = function (k, v) {
     try {
       if (this.__srkHost === 'api.arsip.go.id' && /^authorization$/i.test(k) && v) {
-        const first = !session; session = v;
-        if (first) { sessionWaiters.splice(0).forEach(f => f()); refreshPanel(); }
+        // Token pertama dikunci. Token lain di halaman yang sama dianggap mencurigakan:
+        // JALA berhenti dan meminta halaman dimuat ulang (menutup celah injeksi token).
+        if (!session) { session = v; sessionWaiters.splice(0).forEach(f => f()); refreshPanel(); }
+        else if (v !== session && !sessionConflict) { sessionConflict = true; if (abortCtl) abortCtl.abort(); refreshPanel(); log('Sesi berubah di halaman ini. JALA berhenti demi keamanan. Muat ulang halaman SRIKANDI (F5) lalu jalankan lagi.'); }
       }
     } catch (e) { /* abaikan */ }
     return oSet.apply(this, arguments);
@@ -107,16 +111,22 @@
 
   async function api(url, opt) {
     opt = opt || {};
-    const target = new URL(url);
-    if (target.protocol !== 'https:' || target.host !== 'api.arsip.go.id') throw new Error('Alamat API di luar api.arsip.go.id ditolak');
+    const method = (opt.method || 'GET').toUpperCase();
+    url = C.validateApi(url, method);
     for (let attempt = 0; attempt < 4; attempt++) {
+      if (sessionConflict) throw new Error('Sesi berubah di halaman ini. Muat ulang halaman SRIKANDI (F5).');
+      if (stopFlag) throw new Error('Dihentikan oleh pengguna');
       if (!session) throw new Error('Sesi SRIKANDI belum terdeteksi. Buka salah satu halaman daftar naskah dulu.');
       const headers = { 'Accept': 'application/json', 'Authorization': session };
       if (opt.body) headers['Content-Type'] = 'application/json';
       let r;
       try {
-        r = await fetch(url, { method: opt.method || 'GET', headers, body: opt.body ? JSON.stringify(opt.body) : undefined });
-      } catch (e) { await sleep(2000 * (attempt + 1)); continue; }
+        abortCtl = new AbortController();
+        r = await fetch(url, { method, headers, body: opt.body ? JSON.stringify(opt.body) : undefined, redirect: 'error', credentials: 'omit', cache: 'no-store', signal: abortCtl.signal });
+      } catch (e) {
+        if (stopFlag || sessionConflict) throw new Error(sessionConflict ? 'Sesi berubah di halaman ini. Muat ulang halaman SRIKANDI (F5).' : 'Dihentikan oleh pengguna');
+        await sleep(2000 * (attempt + 1)); continue;
+      }
       if (r.status === 401 || r.status === 403) throw new Error('Sesi habis atau ditolak (' + r.status + '). Muat ulang halaman, login bila perlu, lalu jalankan lagi. Unduhan lama tidak diulang.');
       if (r.status === 429 || r.status >= 500) { await sleep(4000 * (attempt + 1)); continue; }
       const t = await r.text();
@@ -194,13 +204,12 @@
         const url = await signedUrl(it);
         if (!url) throw new Error('URL unduhan tidak diberikan server');
         const t1 = Date.now();
-        const res = await bridge('download', { url, filename: C.buildPath(it, rec.kl, settings.layout) });
+        const res = await bridge('download', { url, filename: C.buildPath(it, rec.kl, settings.layout), key });
         const t2 = Date.now();
         rec.localPath = res && res.filename ? res.filename : C.buildPath(it, rec.kl, settings.layout);
         rec.result = 'BERHASIL'; ctx.stats.ok++;
         rec.timing = ' (url ' + ((t1 - t0) / 1000).toFixed(1) + ' dtk, unduh ' + ((t2 - t1) / 1000).toFixed(1) + ' dtk)';
         ctx.done.add(key);
-        await bridge('markDone', { keys: [key] });
       }
     } catch (e) {
       rec.result = 'GAGAL'; rec.note = e.message; ctx.stats.fail++;
@@ -282,12 +291,14 @@
   async function runCheck(payload) {
     const out = { newItems: [], downloaded: 0, failed: 0, error: null, manual: !!payload.manual };
     if (running) { out.error = 'busy'; return out; }
-    running = true; refreshPanel();
+    running = true; stopFlag = false; refreshPanel();
     const records = [];
     try {
       await waitSession(60000);
       const kv = await bridge('getKV', { keys: ['srk_known', 'srk_baseline', 'srk_retry'] });
-      const known = new Set(kv.srk_known || []), baseline = new Set(kv.srk_baseline || []), retry = new Set(kv.srk_retry || []);
+      const known = new Set(kv.srk_known || []), baseline = new Set(kv.srk_baseline || []);
+      let retryMap = kv.srk_retry || {}; if (Array.isArray(retryMap)) retryMap = Object.fromEntries(retryMap.map(k => [k, { n: 1, next: 0 }]));
+      const now = Date.now(), MAX_AUTO = 100; let autoCount = 0;
       const addKnown = [], newBaseline = [], retryAdd = [], retryDel = [];
       const ctx = { seen: new Set(), done: new Set(await bridge('getDone')), stats: { ok: 0, skip: 0, dup: 0, fail: 0 }, fatal: null };
       const range = C.dateRange(settings.range, settings.from, settings.to);
@@ -304,7 +315,7 @@
             let fresh = 0;
             for (const row of pg.rows) {
               const k = C.knownKey(src, row);
-              const isNew = !known.has(k), isRetry = retry.has(k);
+              const isNew = !known.has(k), isRetry = !!retryMap[k] && retryMap[k].next <= now;
               if (!isNew && !isRetry) continue;
               fresh++;
               if (isNew) { known.add(k); addKnown.push(k); }
@@ -314,7 +325,9 @@
               const rec = newRec(it, kl);
               if (settings.autoDownload) {
                 // Unduh otomatis mengikuti filter yang sama dengan unduhan manual (temuan audit #1).
-                if (C.inRange(it, range) && C.matchKeyword(it, kws) && C.matchKlas(kl.kode, klas)) {
+                if (autoCount >= MAX_AUTO) { rec.result = 'DITUNDA'; rec.note = 'Batas ' + MAX_AUTO + ' unduhan per pemeriksaan; gunakan Mulai unduh'; }
+                else if (C.inRange(it, range) && C.matchKeyword(it, kws) && C.matchKlas(kl.kode, klas)) {
+                  autoCount++;
                   await processItem(it, rec, ctx);
                   records.push(rec);
                   // Unduhan gagal dicoba lagi pada pemeriksaan berikutnya (temuan audit #3).
@@ -338,7 +351,7 @@
         (out.failed ? ', ' + out.failed + ' gagal (dicoba lagi nanti)' : '') +
         (newBaseline.length ? '. Data awal dicatat untuk: ' + newBaseline.join(', ') : '') + '.');
     } catch (e) {
-      out.error = /Sesi|401|403/.test(e.message) ? 'session' : e.message;
+      out.error = sessionConflict ? 'session-changed' : /Sesi|401|403/.test(e.message) ? 'session' : e.message;
       log('Pemeriksaan gagal: ' + e.message);
     } finally {
       await saveIndex(records, 'INDEKS_PANTAU');   // unduh otomatis juga tercatat di indeks (temuan audit #4)
@@ -364,8 +377,11 @@
   function refreshPanel() {
     if (!panel) return;
     const st = $('#srk-session');
-    st.textContent = session ? 'Sesi SRIKANDI: terdeteksi' : 'Sesi SRIKANDI: belum terdeteksi, buka halaman daftar naskah';
-    st.className = 'row ' + (session ? 'ok' : 'wait');
+    st.textContent = sessionConflict ? 'Sesi berubah: muat ulang halaman (F5)' : session ? 'Sesi SRIKANDI: terdeteksi' : 'Sesi SRIKANDI: belum terdeteksi, buka halaman daftar naskah';
+    st.className = 'row ' + (session && !sessionConflict ? 'ok' : 'wait');
+    const dup = $('#srk-dup');
+    const many = (window.__jalaInstances || 1) > 1 || !!document.getElementById('jala-arsip-host');
+    dup.style.display = many ? 'block' : 'none';
     C.SOURCES.forEach(s => {
       const b = $('#srk-st-' + s.key);
       const n = templates[s.path] ? templates[s.path].size : 0;
@@ -435,7 +451,6 @@
       #srk-panel h3{margin:0 0 2px;font-size:16px;color:var(--accent)}
       #srk-panel #srk-theme{margin-left:auto;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:16px;padding:4px 10px;font:600 12px system-ui;cursor:pointer}
       #srk-panel h4{margin:14px 0 6px;font-size:12.5px;color:#111111;background:#FFD21F;padding:4px 9px;border-radius:5px}
-      #srk-panel h4.mon{background:#FF9F1C}
       #srk-panel .row{display:flex;align-items:center;gap:6px;margin:4px 0;flex-wrap:wrap}
       #srk-panel .tag{font-size:11px;padding:1px 7px;border-radius:8px;margin-left:auto;font-weight:600}
       #srk-panel .tag.ok{background:var(--ok-bg);color:var(--ok-ink)}
@@ -448,24 +463,26 @@
       #srk-panel select,#srk-panel input[type=date],#srk-panel input[type=time]{padding:2px 4px}
       #srk-panel button.act{padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-weight:600;cursor:pointer}
       #srk-panel button.act.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-      #srk-panel button.act.warn{background:#FF9F1C;color:#111111;border-color:#FF9F1C}
+      #srk-panel button.act.warn{background:#FFD21F;color:#111111;border-color:#FFD21F}
       #srk-panel button.act:disabled{opacity:.5;cursor:default}
       #srk-panel :focus-visible{outline:2px solid #FFD21F;outline-offset:2px}
       #srk-log{height:170px;overflow:auto;background:#062523;color:#CFE9E5;font:11px ui-monospace,monospace;padding:6px;border-radius:6px;margin-top:8px;white-space:pre-wrap;border:1px solid var(--line)}
       #srk-panel .note{font-size:11px;color:var(--muted)}
       #srk-panel .credit{white-space:pre-line;font-size:10.5px;line-height:1.45;color:var(--muted);border-top:1px solid var(--line);margin-top:10px;padding-top:8px}
       #srk-panel .sub{font-size:12px;color:var(--muted);margin:0 0 4px}
+      #srk-panel .warn-box{display:none;background:#FFD21F;color:#111111;border:2px solid #111111;border-radius:8px;padding:8px 10px;font-weight:600;margin:6px 0}
       #srk-session.ok{color:var(--ok-ink)} #srk-session.wait{color:var(--wait-ink)}`));
 
     const fab = el('button', { id: 'srk-fab', title: 'JALA Arsip: salinan arsip pribadi pengguna SRIKANDI' });
     fab.innerHTML = '<svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-4px;margin-right:6px"><path d="M8 2.6 L3 11.6 M8 2.6 L13 11.6 M8 2.6 V12.3 M4.9 8.2 Q8 9.4 11.1 8.2" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><circle cx="3.2" cy="12.2" r="1.7" fill="#CDDC29"/><circle cx="8" cy="13.1" r="1.7" fill="#CDDC29"/><circle cx="12.8" cy="12.2" r="1.7" fill="#CDDC29"/></svg>JALA';
     panel = el('div', { id: 'srk-panel' });
     const themeBtn = el('button', { id: 'srk-theme', type: 'button' }, 'Tema gelap');
-    const headTxt = el('div'); headTxt.append(el('h3', {}, 'JALA Arsip v1.3'), el('div', { className: 'sub' }, 'Salinan arsip pribadi untuk pengguna SRIKANDI'));
+    const headTxt = el('div'); headTxt.append(el('h3', {}, 'JALA Arsip v1.4.1'), el('div', { className: 'sub' }, 'Salinan arsip pribadi untuk pengguna SRIKANDI'));
     const head = el('div', { className: 'head' }); head.append(headTxt, themeBtn);
     panel.append(head,
       el('div', { className: 'note' }, 'Hanya membaca. Salinan PDF disimpan di Downloads/' + C.ROOT_FOLDER + '.'),
-      el('div', { id: 'srk-session', className: 'row' }));
+      el('div', { id: 'srk-session', className: 'row' }),
+      el('div', { id: 'srk-dup', className: 'warn-box' }, 'Terdeteksi lebih dari satu JALA terpasang di Chrome. Buka chrome://extensions, hapus (Remove) yang lama, lalu muat ulang halaman ini. Riwayat bisa dipindahkan lewat Ekspor/Impor di halaman Opsi.'));
 
     // Sumber
     panel.append(el('h4', {}, '1. Sumber naskah'));
@@ -529,7 +546,7 @@
       if (o.range === 'custom' && o.from && o.to && o.from > o.to) { log('Tanggal "dari" lebih besar dari "sampai".'); return; }
       run(o).catch(e => { log('Berhenti: ' + e.message); running = false; refreshPanel(); });
     };
-    stop.onclick = () => { stopFlag = true; log('Menghentikan setelah naskah yang sedang diproses...'); };
+    stop.onclick = () => { stopFlag = true; if (abortCtl) abortCtl.abort(); log('Menghentikan...'); };
     checkBtn.onclick = async () => {
       if (running) return;
       log('Memeriksa naskah baru...');

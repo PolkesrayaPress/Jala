@@ -1,4 +1,4 @@
-/* JALA Arsip (Jaring Arsip Lokal Otomatis) - fungsi murni (tanpa akses jaringan).
+/* JALA Arsip v1.4.1 (Jaring Arsip Lokal Otomatis) - fungsi murni (tanpa akses jaringan).
  * Dipakai oleh agent.js (halaman), background.js (service worker), dan diuji dengan Node. */
 (function (root) {
   'use strict';
@@ -62,6 +62,24 @@
       const u = new URL(url);
       return u.protocol === 'https:' && u.host === 'api.arsip.go.id' && u.pathname === path && SOURCES.some(x => x.path === path);
     } catch (e) { return false; }
+  }
+
+
+  // Hanya permintaan baca yang dikenal yang boleh membawa header sesi (gabungan dari audit ChatGPT F01).
+  const API_RULES = [
+    { method: 'GET', re: /^\/master\/api\/klasifikasi\/\d{1,12}$/ },
+    { method: 'GET', re: /^\/storage\/geturlpreview$/ },
+    { method: 'POST', re: /^\/naskah-masuk\/api\/naskah-dinas\/naskah-masuk\/get-content-file$/ }
+  ];
+  function validateApi(url, method) {
+    const m = String(method || 'GET').toUpperCase();
+    let u;
+    try { u = new URL(url); } catch (e) { throw new Error('Alamat API tidak valid'); }
+    if (u.protocol !== 'https:' || u.host !== 'api.arsip.go.id' || u.username || u.password || u.port) throw new Error('Alamat API di luar https://api.arsip.go.id ditolak');
+    if ([...u.searchParams.keys()].some(k => /token|authorization|password/i.test(k))) throw new Error('Parameter kredensial di alamat API ditolak');
+    const ok = (m === 'GET' && SOURCES.some(s => s.path === u.pathname)) || API_RULES.some(r => r.method === m && r.re.test(u.pathname));
+    if (!ok) throw new Error('Permintaan ' + m + ' ' + u.pathname + ' tidak diizinkan');
+    return u.toString();
   }
 
   // Nama file unduhan harus berada di dalam folder arsip.
@@ -275,7 +293,7 @@
   }
 
   const api = {
-    sanitizeSettings, isValidTemplate, isSafeDownloadName,
+    sanitizeSettings, isValidTemplate, isSafeDownloadName, validateApi,
     ROOT_FOLDER, LIST_URL, SOURCES, DEFAULT_SETTINGS, BULAN,
     sanitize, kodeFromNomor, dateOf, yearOf, extOf,
     dateRange, inRange, parseList, matchKlas, matchKeyword, describeFilter,

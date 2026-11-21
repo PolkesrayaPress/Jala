@@ -1,4 +1,4 @@
-# JALA Arsip v1.3: Jaring Arsip Lokal Otomatis
+# JALA Arsip v1.4.1: Jaring Arsip Lokal Otomatis
 
 **Alat arsip pribadi untuk pengguna SRIKANDI.** Setiap pengguna memakai akun SRIKANDI-nya sendiri, dan salinan naskah tersimpan di laptopnya sendiri.
 
@@ -10,6 +10,19 @@ Ekstensi Chrome untuk:
 2. **Memantau naskah baru** secara berkala dan menampilkan notifikasi di desktop.
 
 Ekstensi ini **tidak memakai AI** dan tidak membutuhkan langganan apa pun. Semua aturannya tetap dan berjalan di Chrome Anda.
+
+## 0. Penting: satu JALA saja di Chrome
+
+Mulai v1.4, JALA Arsip punya **ID tetap** `bgpfanedbfemacdgbgbnhmjmgaaahagp`. Memasang ulang dari folder mana pun akan **menggantikan** JALA v1.4 yang sudah ada, bukan menambah salinan baru.
+
+Versi sebelum 1.4 belum punya ID tetap. Setiap folder dianggap ekstensi berbeda, sehingga bisa ada beberapa JALA sekaligus. Bersihkan sekali saja:
+1. Buka `chrome://extensions`.
+2. Klik **Remove** pada semua JALA / SRIKANDI Arsip Agent versi lama (versi 1.0 sampai 1.3.x, termasuk kandidat uji 1.3.0 dari ChatGPT).
+3. Pasang v1.4 dengan **Load unpacked**, lalu tekan F5 di tab SRIKANDI.
+
+Akibatnya riwayat versi lama tidak terbawa, karena versi lama belum punya tombol Ekspor. Ini aman: PDF yang diunduh ulang **menimpa** berkas bernama sama, jadi tidak muncul salinan ganda. Pemeriksaan pertama pemantauan akan mencatat data awal lagi.
+
+Halaman Opsi menampilkan **"Your file couldn't be accessed"**? Itu berarti JALA terpasang dari folder yang sudah dipindah, dihapus, atau isinya ditimpa versi lain. Hapus entri itu di `chrome://extensions` lalu pasang ulang.
 
 ## 1. Memperbarui dari versi sebelumnya (SRIKANDI Arsip Agent)
 
