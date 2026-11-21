@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "JALA Arsip",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Salinan arsip pribadi pengguna SRIKANDI: PDF tersusun per tahun dan klasifikasi, plus notifikasi naskah baru. Bukan produk ANRI.",
   "permissions": [
     "downloads",

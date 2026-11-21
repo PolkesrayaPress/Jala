@@ -1,4 +1,4 @@
-# JALA Arsip v1.4.1: Jaring Arsip Lokal Otomatis
+# JALA Arsip v1.4.2: Jaring Arsip Lokal Otomatis
 
 **Alat arsip pribadi untuk pengguna SRIKANDI.** Setiap pengguna memakai akun SRIKANDI-nya sendiri, dan salinan naskah tersimpan di laptopnya sendiri.
 
@@ -10,6 +10,13 @@ Ekstensi Chrome untuk:
 2. **Memantau naskah baru** secara berkala dan menampilkan notifikasi di desktop.
 
 Ekstensi ini **tidak memakai AI** dan tidak membutuhkan langganan apa pun. Semua aturannya tetap dan berjalan di Chrome Anda.
+
+## Peringatan: jangan pindahkan atau hapus folder JALA
+
+Folder hasil ekstrak yang Anda pilih saat **Load unpacked** adalah aplikasinya sendiri, bukan installer. Chrome menjalankan JALA langsung dari folder itu.
+- **Boleh dihapus:** berkas ZIP hasil unduhan, setelah diekstrak.
+- **Jangan dipindah, diganti nama, atau dihapus:** folder `jala` hasil ekstrak. Simpan di lokasi tetap pilihan Anda yang tidak akan dibersihkan atau dipindahkan.
+- Kalau terlanjur dipindah: klik **Load unpacked** dan pilih folder di lokasi barunya. Mulai v1.4, kartu lama otomatis tergantikan.
 
 ## 0. Penting: satu JALA saja di Chrome
 
@@ -69,7 +76,7 @@ Cara kerjanya:
 
 ## 4. Pemasangan pertama (kalau belum pernah)
 
-1. Ekstrak ZIP ke folder tetap, misalnya `Documents\srikandi-arsip-agent`.
+1. Ekstrak ZIP ke folder tetap pilihan Anda.
 2. Buka `chrome://extensions`, aktifkan **Developer mode**, klik **Load unpacked**, lalu pilih folder tersebut.
 3. Matikan "Ask where to save each file" di `chrome://settings/downloads`.
 4. Login SRIKANDI, tekan F5, klik tombol **JALA**, lalu klik **buka** pada setiap sumber sampai semuanya berlabel **siap**. Alamat yang dipelajari disimpan, jadi langkah ini cukup sekali.

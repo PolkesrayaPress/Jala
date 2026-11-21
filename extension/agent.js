@@ -1,4 +1,4 @@
-/* JALA Arsip v1.4.1 - berjalan di halaman SRIKANDI (MAIN world).
+/* JALA Arsip v1.4.2 - berjalan di halaman SRIKANDI (MAIN world).
  * Prinsip:
  *  - Hanya membaca: daftar naskah, master klasifikasi, dan URL unduhan berkas.
  *    Tidak pernah memanggil endpoint tanda tangan, verifikasi, disposisi, atau pemberkasan.
@@ -452,7 +452,10 @@
       #srk-panel #srk-theme{margin-left:auto;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:16px;padding:4px 10px;font:600 12px system-ui;cursor:pointer}
       #srk-panel h4{margin:14px 0 6px;font-size:12.5px;color:#111111;background:#FFD21F;padding:4px 9px;border-radius:5px}
       #srk-panel .row{display:flex;align-items:center;gap:6px;margin:4px 0;flex-wrap:wrap}
+      #srk-panel .src-label{flex:1;min-width:0}
       #srk-panel .tag{font-size:11px;padding:1px 7px;border-radius:8px;margin-left:auto;font-weight:600}
+      #srk-panel a.open-btn{display:inline-block;flex:none;font:700 11.5px system-ui,"Segoe UI",sans-serif !important;color:#111111 !important;background:#FFD21F !important;border:1.5px solid #111111;border-radius:6px;padding:2px 9px;text-decoration:none !important;line-height:1.5}
+      #srk-panel a.open-btn:hover{background:#FFE15C !important}
       #srk-panel .tag.ok{background:var(--ok-bg);color:var(--ok-ink)}
       #srk-panel .tag.wait{background:var(--wait-bg);color:var(--wait-ink)}
       #srk-panel a{color:var(--accent)}
@@ -477,7 +480,7 @@
     fab.innerHTML = '<svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-4px;margin-right:6px"><path d="M8 2.6 L3 11.6 M8 2.6 L13 11.6 M8 2.6 V12.3 M4.9 8.2 Q8 9.4 11.1 8.2" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><circle cx="3.2" cy="12.2" r="1.7" fill="#CDDC29"/><circle cx="8" cy="13.1" r="1.7" fill="#CDDC29"/><circle cx="12.8" cy="12.2" r="1.7" fill="#CDDC29"/></svg>JALA';
     panel = el('div', { id: 'srk-panel' });
     const themeBtn = el('button', { id: 'srk-theme', type: 'button' }, 'Tema gelap');
-    const headTxt = el('div'); headTxt.append(el('h3', {}, 'JALA Arsip v1.4.1'), el('div', { className: 'sub' }, 'Salinan arsip pribadi untuk pengguna SRIKANDI'));
+    const headTxt = el('div'); headTxt.append(el('h3', {}, 'JALA Arsip v1.4.2'), el('div', { className: 'sub' }, 'Salinan arsip pribadi untuk pengguna SRIKANDI'));
     const head = el('div', { className: 'head' }); head.append(headTxt, themeBtn);
     panel.append(head,
       el('div', { className: 'note' }, 'Hanya membaca. Salinan PDF disimpan di Downloads/' + C.ROOT_FOLDER + '.'),
@@ -488,7 +491,9 @@
     panel.append(el('h4', {}, '1. Sumber naskah'));
     C.SOURCES.forEach(s => {
       const cb = el('input', { type: 'checkbox', id: 'srk-cb-' + s.key, checked: true });
-      panel.append(row(cb, el('label', { htmlFor: cb.id }, s.group + ' / ' + s.label), el('a', { href: s.page, title: 'Buka halaman ini' }, 'buka'), el('span', { id: 'srk-st-' + s.key, className: 'tag' })));
+      const open = el('a', { href: s.page, className: 'open-btn', title: 'Buka daftar ' + s.label + ' agar JALA mengenalinya' }, 'Buka daftar');
+      const lbl = el('label', { htmlFor: cb.id, className: 'src-label' }, s.group + ' / ' + s.label);
+      panel.append(row(cb, lbl, el('span', { id: 'srk-st-' + s.key, className: 'tag' }), open));
     });
 
     // Filter unduhan
@@ -529,7 +534,7 @@
     statBox = el('div', { className: 'note', style: 'margin-top:8px' }, 'Belum berjalan');
     logBox = el('div', { id: 'srk-log' });
     panel.append(statBox, logBox,
-      el('div', { className: 'credit' }, 'Dikembangkan oleh Deddy Eko Heryanto, S.T.\nJFT Pranata Komputer Ahli Muda, Perpustakaan Poltekkes Kemenkes Palangka Raya\nAlat arsip pribadi. Bukan produk resmi ANRI.'));
+      el('div', { className: 'credit' }, 'Dikembangkan oleh Deddy Eko Heryanto, S.T.\nJFT Pranata Komputer Ahli Muda\nPerpustakaan Poltekkes Kemenkes Palangka Raya\nAlat arsip pribadi. Bukan produk resmi ANRI.'));
 
     // Peristiwa
     themeBtn.onclick = () => {

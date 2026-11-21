@@ -96,6 +96,16 @@ code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-siz
 .ext-hint.done { font-weight: 700; }
 kbd { font: 700 .85em ui-monospace, Consolas, monospace; background: #FFFFFF; color: #111111; border: 1px solid #111111; border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; }
 
+/* peringatan folder: kuning-hitam bergaris, terlihat di tema terang dan gelap */
+.folder-warn { display: flex; gap: 14px; align-items: flex-start; max-width: 620px; margin: 16px 0 0; padding: 14px 16px; color: #111111; border: 2px solid #111111; border-radius: 12px;
+  background: repeating-linear-gradient(135deg, #FFD21F 0 14px, #FFE16A 14px 28px); box-shadow: 4px 4px 0 #111111; }
+#warn-install { margin: 14px 0 32px; }
+#ext-install { margin-bottom: 0; }
+.folder-warn svg { flex: none; margin-top: 2px; }
+.folder-warn p { margin: 0; line-height: 1.5; }
+.folder-warn .fw-title { font: 800 1.08rem var(--f-display); margin-bottom: 4px; }
+.folder-warn code { background: #FFFFFF; color: #111111; border: 1px solid #111111; }
+
 /* hero */
 .hero { padding: 64px 0 40px; overflow: hidden; }
 .hero-in { display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; align-items: center; }

@@ -54,7 +54,7 @@
         <h1>Naskah SRIKANDI Anda, tersalin rapi di laptop sendiri.</h1>
         <p class="lead">JALA Arsip adalah ekstensi Chrome yang mengunduh salinan PDF naskah masuk dan keluar dari akun SRIKANDI Anda, lalu menyusunnya per tahun dan klasifikasi. JALA juga memberi tahu lewat notifikasi desktop bila ada naskah baru.</p>
         <div class="cta">
-          <a class="btn primary" href="download/jala-arsip-v1.4.1.zip" download>Unduh JALA Arsip 1.4.1</a>
+          <a class="btn primary" href="download/jala-arsip-v1.4.2.zip" download>Unduh JALA Arsip 1.4.2</a>
           <a class="btn ghost" href="#instalasi">Lihat cara memasang</a>
         </div>
         <div class="ext-link" id="ext-hero">
@@ -64,6 +64,13 @@
             <button type="button" class="copy-btn" data-copy="chrome://extensions/">Salin alamat</button>
           </div>
           <p class="ext-hint" role="status">Chrome tidak mengizinkan situs membuka alamat ini langsung. Klik tautan atau tombol di atas untuk menyalinnya, lalu tekan <kbd>Ctrl</kbd>+<kbd>T</kbd>, <kbd>Ctrl</kbd>+<kbd>V</kbd>, dan <kbd>Enter</kbd>.</p>
+        </div>
+        <div class="folder-warn" id="warn-hero" role="note">
+          <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M12 2.5 22.5 21h-21z" fill="#111111"/><path d="M12 9v6" stroke="#FFD21F" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="18" r="1.4" fill="#FFD21F"/></svg>
+          <div>
+            <p class="fw-title">Jangan pindahkan atau hapus folder JALA</p>
+            <p>Folder hasil ekstrak yang Anda pilih saat <b>Load unpacked</b> adalah aplikasinya, bukan installer. Chrome menjalankan JALA langsung dari folder itu. Simpan di lokasi tetap pilihan Anda yang tidak akan dibersihkan atau dipindahkan. Berkas ZIP boleh dihapus setelah diekstrak.</p>
+          </div>
         </div>
         <dl class="promise">
           <div><dt>Akun Anda sendiri</dt><dd>Setiap pengguna login ke SRIKANDI dengan akunnya. JALA tidak meminta dan tidak menyimpan kata sandi.</dd></div>
@@ -150,6 +157,13 @@
           </div>
           <p class="ext-hint" role="status">Chrome tidak mengizinkan situs membuka alamat ini langsung. Klik tautan atau tombol di atas untuk menyalinnya, lalu tekan <kbd>Ctrl</kbd>+<kbd>T</kbd>, <kbd>Ctrl</kbd>+<kbd>V</kbd>, dan <kbd>Enter</kbd>.</p>
         </div>
+        <div class="folder-warn" id="warn-install" role="note">
+          <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M12 2.5 22.5 21h-21z" fill="#111111"/><path d="M12 9v6" stroke="#FFD21F" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="18" r="1.4" fill="#FFD21F"/></svg>
+          <div>
+            <p class="fw-title">Jangan pindahkan atau hapus folder JALA</p>
+            <p>Folder hasil ekstrak yang Anda pilih saat <b>Load unpacked</b> adalah aplikasinya, bukan installer. Chrome menjalankan JALA langsung dari folder itu. Simpan di lokasi tetap pilihan Anda yang tidak akan dibersihkan atau dipindahkan. Berkas ZIP boleh dihapus setelah diekstrak.</p>
+          </div>
+        </div>
 
       <div class="player" id="player">
         <video id="video" controls preload="metadata" playsinline poster="media/jala-panduan-poster.jpg">
@@ -202,6 +216,7 @@
         <details><summary>Muncul notifikasi "Sesi SRIKANDI habis"</summary><p>Login ulang ke SRIKANDI di Chrome. Pemeriksaan berikutnya akan berjalan normal. JALA tidak bisa login sendiri karena memang tidak menyimpan kata sandi.</p></details>
         <details><summary>Notifikasi tidak muncul</summary><p>Klik Tes notifikasi di panel JALA. Kalau tetap tidak muncul, buka Settings Windows, lalu System, Notifications, dan pastikan Google Chrome aktif serta mode Do not disturb mati.</p></details>
         <details><summary>Pemeriksaan otomatis tidak berjalan</summary><p>Pemeriksaan hanya berjalan saat komputer menyala dan Chrome terbuka. Kalau laptop tidur atau Chrome ditutup, pemeriksaan dilanjutkan pada jadwal berikutnya.</p></details>
+        <details><summary>Bolehkah folder JALA dipindah atau dihapus?</summary><p>Tidak, selama JALA dipakai. Chrome menjalankan JALA langsung dari folder itu. Bila terlanjur dipindah, klik Load unpacked di chrome://extensions dan pilih folder di lokasi barunya. Mulai versi 1.4, kartu lama otomatis tergantikan dan riwayat tetap tersimpan. Yang boleh dihapus hanyalah berkas ZIP hasil unduhan.</p></details>
         <details><summary>Versi lama tidak hilang setelah memasang dari folder lain</summary><p>Versi sebelum 1.4 belum punya ID tetap, jadi setiap folder dianggap ekstensi berbeda. Buka chrome://extensions dan klik Remove pada semua JALA versi lama. Mulai 1.4, ID-nya tetap (bgpfanedbfemacdgbgbnhmjmgaaahagp), sehingga memasang dari folder lain langsung menggantikan versi sebelumnya.</p></details>
         <details><summary>Halaman Opsi menampilkan "Your file couldn't be accessed"</summary><p>JALA itu terpasang dari folder yang sudah dipindah, dihapus, atau isinya ditimpa versi lain. Hapus entrinya di chrome://extensions, lalu pasang ulang dari folder yang tetap dan jangan dipindahkan selama JALA dipakai.</p></details>
         <details><summary>Panel menampilkan "Sesi berubah: muat ulang halaman"</summary><p>JALA mendeteksi token sesi yang berbeda di halaman yang sama dan berhenti demi keamanan. Tekan F5 di tab SRIKANDI, lalu jalankan lagi.</p></details>
@@ -250,7 +265,7 @@
         <p>JFT Pranata Komputer Ahli Muda, Perpustakaan Poltekkes Kemenkes Palangka Raya</p>
       </div>
     </div>
-    <p class="legal">JALA Arsip 1.4.1, lisensi MIT. SRIKANDI adalah aplikasi milik Arsip Nasional Republik Indonesia. JALA Arsip adalah alat arsip pribadi yang dibuat secara mandiri dan tidak berafiliasi dengan ANRI.</p>
+    <p class="legal">JALA Arsip 1.4.2, lisensi MIT. SRIKANDI adalah aplikasi milik Arsip Nasional Republik Indonesia. JALA Arsip adalah alat arsip pribadi yang dibuat secara mandiri dan tidak berafiliasi dengan ANRI.</p>
   </div>
 </footer>
 
