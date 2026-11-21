@@ -1,4 +1,4 @@
-/* JALA Arsip v1.4.2 (Jaring Arsip Lokal Otomatis) - fungsi murni (tanpa akses jaringan).
+/* JALA Arsip v1.4.3 (Jaring Arsip Lokal Otomatis) - fungsi murni (tanpa akses jaringan).
  * Dipakai oleh agent.js (halaman), background.js (service worker), dan diuji dengan Node. */
 (function (root) {
   'use strict';

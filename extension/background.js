@@ -1,4 +1,4 @@
-/* JALA Arsip v1.4.2 - service worker.
+/* JALA Arsip v1.4.3 - service worker.
  * Unduhan, penyimpanan riwayat/pengaturan, jadwal pemeriksaan, notifikasi desktop. */
 'use strict';
 importScripts('core.js');

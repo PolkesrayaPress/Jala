@@ -1,4 +1,4 @@
-# JALA Arsip v1.4.2: Jaring Arsip Lokal Otomatis
+# JALA Arsip v1.4.3: Jaring Arsip Lokal Otomatis
 
 **Alat arsip pribadi untuk pengguna SRIKANDI.** Setiap pengguna memakai akun SRIKANDI-nya sendiri, dan salinan naskah tersimpan di laptopnya sendiri.
 

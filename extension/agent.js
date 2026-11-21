@@ -1,4 +1,4 @@
-/* JALA Arsip v1.4.2 - berjalan di halaman SRIKANDI (MAIN world).
+/* JALA Arsip v1.4.3 - berjalan di halaman SRIKANDI (MAIN world).
  * Prinsip:
  *  - Hanya membaca: daftar naskah, master klasifikasi, dan URL unduhan berkas.
  *    Tidak pernah memanggil endpoint tanda tangan, verifikasi, disposisi, atau pemberkasan.
@@ -453,6 +453,8 @@
       #srk-panel h4{margin:14px 0 6px;font-size:12.5px;color:#111111;background:#FFD21F;padding:4px 9px;border-radius:5px}
       #srk-panel .row{display:flex;align-items:center;gap:6px;margin:4px 0;flex-wrap:wrap}
       #srk-panel .src-label{flex:1;min-width:0}
+      #srk-panel .row>input[type=checkbox]{flex:none;align-self:flex-start;margin:3px 0 0}
+      #srk-panel .row>input[type=checkbox]+label{flex:1 1 0;min-width:0;line-height:1.4}
       #srk-panel .tag{font-size:11px;padding:1px 7px;border-radius:8px;margin-left:auto;font-weight:600}
       #srk-panel a.open-btn{display:inline-block;flex:none;font:700 11.5px system-ui,"Segoe UI",sans-serif !important;color:#111111 !important;background:#FFD21F !important;border:1.5px solid #111111;border-radius:6px;padding:2px 9px;text-decoration:none !important;line-height:1.5}
       #srk-panel a.open-btn:hover{background:#FFE15C !important}
@@ -480,7 +482,7 @@
     fab.innerHTML = '<svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-4px;margin-right:6px"><path d="M8 2.6 L3 11.6 M8 2.6 L13 11.6 M8 2.6 V12.3 M4.9 8.2 Q8 9.4 11.1 8.2" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><circle cx="3.2" cy="12.2" r="1.7" fill="#CDDC29"/><circle cx="8" cy="13.1" r="1.7" fill="#CDDC29"/><circle cx="12.8" cy="12.2" r="1.7" fill="#CDDC29"/></svg>JALA';
     panel = el('div', { id: 'srk-panel' });
     const themeBtn = el('button', { id: 'srk-theme', type: 'button' }, 'Tema gelap');
-    const headTxt = el('div'); headTxt.append(el('h3', {}, 'JALA Arsip v1.4.2'), el('div', { className: 'sub' }, 'Salinan arsip pribadi untuk pengguna SRIKANDI'));
+    const headTxt = el('div'); headTxt.append(el('h3', {}, 'JALA Arsip v1.4.3'), el('div', { className: 'sub' }, 'Salinan arsip pribadi untuk pengguna SRIKANDI'));
     const head = el('div', { className: 'head' }); head.append(headTxt, themeBtn);
     panel.append(head,
       el('div', { className: 'note' }, 'Hanya membaca. Salinan PDF disimpan di Downloads/' + C.ROOT_FOLDER + '.'),

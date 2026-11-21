@@ -34,7 +34,7 @@ JALA adalah **alat arsip pribadi** bagi setiap pengguna SRIKANDI. Setiap orang m
 > **ID ekstensi tetap: `bgpfanedbfemacdgbgbnhmjmgaaahagp`.** Memasang dari folder lain menggantikan JALA 1.4 atau lebih baru yang sudah terpasang. Hapus dulu versi sebelum 1.4 di `chrome://extensions`, karena versi lama memakai ID berbeda dan akan tetap terpasang berdampingan.
 
 
-1. Unduh [`docs/download/jala-arsip-v1.4.2.zip`](docs/download/jala-arsip-v1.4.2.zip), lalu ekstrak ke folder tetap pilihan Anda.
+1. Unduh [`docs/download/jala-arsip-v1.4.3.zip`](docs/download/jala-arsip-v1.4.3.zip), lalu ekstrak ke folder tetap pilihan Anda.
 2. Buka `chrome://extensions`, aktifkan **Developer mode**, klik **Load unpacked**, lalu pilih folder `jala`.
 3. Login ke SRIKANDI, tekan F5, lalu klik tombol **JALA** di kanan bawah.
 
@@ -84,6 +84,7 @@ JFT Pranata Komputer Ahli Muda, Perpustakaan Poltekkes Kemenkes Palangka Raya
 
 ## Riwayat versi
 
+- **1.4.3**: teks di samping kotak centang panel kini sejajar dan membungkus di sampingnya, tidak turun ke baris baru.
 - **1.4.2**: tombol "Buka daftar" kuning yang jelas terlihat di panel; baris kredit dipecah agar tidak terpotong; peringatan agar folder JALA tidak dipindah atau dihapus di situs, README, panduan, dan halaman Opsi.
 - **1.4.1**: judul bagian panel dan halaman Opsi berwarna kuning seragam dengan tulisan hitam; halaman Opsi mengikuti tema terang/gelap; perbaikan tautan unduhan di README.
 - **1.4.0**: gabungan dengan revisi ChatGPT 1.3.0. ID ekstensi tetap (bgpfanedbfemacdgbgbnhmjmgaaahagp); peringatan bila ada dua JALA terpasang; ekspor/impor riwayat; token sesi dikunci per halaman (menutup celah injeksi token yang ada di 1.3.1 maupun kandidat ChatGPT 1.3.0); validasi API per metode dan path, `redirect: error`, `credentials: omit`; Stop membatalkan permintaan; coba ulang maksimal 5 kali dengan jeda 30 sampai 240 menit; service worker menandai unduhan selesai dan merekonsiliasi setelah hidup ulang; maksimal 100 unduhan otomatis per pemeriksaan; PDF menimpa berkas bernama sama.
