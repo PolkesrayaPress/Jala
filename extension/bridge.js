@@ -2,7 +2,7 @@
  * Meneruskan perintah unduh, pengaturan, dan hasil pemeriksaan. Tidak pernah menerima header sesi. */
 (function () {
   'use strict';
-  const ALLOWED = new Set(['download', 'saveText', 'getDone', 'markDone', 'resetDone', 'getKV', 'setKV',
+  const ALLOWED = new Set(['download', 'saveText', 'getDone', 'markDone', 'updRetry', 'getKV', 'setKV',
     'saveTemplate', 'addKnown', 'applySchedule', 'checkResult', 'testNotify']);
 
   // Halaman -> ekstensi

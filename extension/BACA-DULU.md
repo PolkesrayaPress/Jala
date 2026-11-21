@@ -1,4 +1,4 @@
-# JALA v1.2: Jaring Arsip Lokal Otomatis
+# JALA Arsip v1.3: Jaring Arsip Lokal Otomatis
 
 **Alat arsip pribadi untuk pengguna SRIKANDI.** Setiap pengguna memakai akun SRIKANDI-nya sendiri, dan salinan naskah tersimpan di laptopnya sendiri.
 
@@ -14,7 +14,7 @@ Ekstensi ini **tidak memakai AI** dan tidak membutuhkan langganan apa pun. Semua
 ## 1. Memperbarui dari versi sebelumnya (SRIKANDI Arsip Agent)
 
 1. Ekstrak ZIP ini, lalu **timpa** isi folder `srikandi-arsip-agent` yang lama.
-2. Buka `chrome://extensions`, cari ekstensi lama, lalu klik ikon **muat ulang** (panah melingkar). Namanya akan berubah menjadi JALA.
+2. Buka `chrome://extensions`, cari ekstensi lama, lalu klik ikon **muat ulang** (panah melingkar). Namanya akan berubah menjadi JALA Arsip.
 3. Muat ulang tab SRIKANDI (F5).
 
 Riwayat unduhan versi lama tetap dipakai, sehingga file yang sudah terunduh tidak diunduh ulang.
@@ -37,13 +37,14 @@ Pengaturan tersimpan otomatis. Log menampilkan waktu tiap file (`url x dtk, undu
 | Pengaturan | Keterangan |
 |---|---|
 | Periksa | Mati, setiap 30 menit, 1 jam, 3 jam, 6 jam, atau sekali sehari pada jam tertentu |
-| Langsung unduh naskah baru | Kalau dicentang, naskah baru langsung disimpan ke folder arsip |
+| Langsung unduh naskah baru | Kalau dicentang, naskah baru yang cocok dengan filter di bagian 2 langsung disimpan ke folder arsip dan dicatat di `INDEKS_PANTAU_*.csv`. Unduhan yang gagal dicoba lagi pada pemeriksaan berikutnya |
+| Tampilkan perihal di notifikasi | Matikan bila sering berbagi layar. Notifikasi hanya menampilkan jumlah per daftar |
 | Buka tab SRIKANDI di latar belakang | Kalau tab SRIKANDI tertutup, agen membuka tab tersemat, memeriksa, lalu menutupnya kembali |
 | Periksa sekarang | Menjalankan pemeriksaan saat itu juga |
 | Tes notifikasi | Memastikan notifikasi desktop muncul |
 
 Cara kerjanya:
-- Agen membaca **halaman pertama (50 naskah terbaru)** dari setiap daftar yang dicentang dan membandingkannya dengan yang pernah dilihat. Halaman detail tidak dibuka, sehingga status "dibaca" tidak berubah.
+- Agen membaca naskah terbaru dari setiap daftar yang dicentang, halaman demi halaman sampai 250 naskah, dan berhenti begitu satu halaman tidak berisi naskah baru. Halaman detail tidak dibuka, sehingga status "dibaca" tidak berubah.
 - **Pemeriksaan pertama** setiap daftar hanya mencatat data awal tanpa notifikasi. Proses "Mulai unduh" yang selesai penuh juga dihitung sebagai data awal.
 - Notifikasi menampilkan jumlah naskah baru dan 3 contoh (sumber, kode, hal). Klik notifikasi atau ikon ekstensi untuk membuka SRIKANDI. Angka merah di ikon menunjukkan naskah baru yang belum dilihat.
 - Disposisi baru atas naskah lama juga dilaporkan sebagai item baru di daftar Disposisi.
@@ -65,7 +66,7 @@ Cara kerjanya:
 - Cakupan mengikuti hak akses akun. Role *User* hanya melihat naskah yang ditujukan, ditembuskan, didisposisikan, atau dibuat oleh Anda.
 - Naskah ber-OTP dilewati dan tercatat "DILEWATI" di indeks.
 - Ini salinan cadangan, bukan pemberkasan resmi. Arsip dinamis yang sah tetap berada di Pemberkasan Arsip Aktif SRIKANDI.
-- Selama unduhan penuh berjalan, biarkan tab SRIKANDI **terlihat** (jangan diminimalkan). Chrome memperlambat tab yang tersembunyi.
+- Selama unduhan penuh berjalan, jangan tutup tab SRIKANDI. Pindah tab atau membuka Word boleh, tetapi tab latar belakang bisa lebih lambat. Kalau tab tertutup, antrean berhenti; klik Mulai unduh lagi dan file yang sudah ada akan dilewati.
 - Kalau SRIKANDI mengubah alamat API-nya, ekstensi perlu diperbarui.
 
 ## 6. Keamanan
@@ -73,7 +74,8 @@ Cara kerjanya:
 - Hanya membaca. Agen tidak memanggil fungsi tanda tangan, verifikasi, disposisi, pemberkasan, atau hapus.
 - Sesi login hanya disimpan di memori tab SRIKANDI. Yang disimpan di ekstensi hanyalah pengaturan, alamat daftar (tanpa sesi), dan daftar ID naskah yang sudah dilihat atau diunduh.
 - Unduhan hanya diterima dari `s3.arsip.go.id`. Perintah hanya diterima dari halaman `srikandi.arsip.go.id`.
-- **Lupakan riwayat** hanya mengosongkan catatan unduhan. File di laptop tidak dihapus.
+- Riwayat unduhan diatur di halaman **Opsi** (klik kanan ikon JALA Arsip, pilih Opsi). Menghapus riwayat tidak menghapus file di laptop.
+- Header sesi hanya dikirim ke `api.arsip.go.id`. Halaman web hanya bisa mengubah pengaturan yang tervalidasi.
 
 ## 7. Kolom indeks CSV
 

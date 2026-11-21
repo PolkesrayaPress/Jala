@@ -1,4 +1,4 @@
-/* JALA (Jaring Arsip Lokal Otomatis) v1.2 - berjalan di halaman SRIKANDI (MAIN world).
+/* JALA Arsip v1.3 - berjalan di halaman SRIKANDI (MAIN world).
  * Prinsip:
  *  - Hanya membaca: daftar naskah, master klasifikasi, dan URL unduhan berkas.
  *    Tidak pernah memanggil endpoint tanda tangan, verifikasi, disposisi, atau pemberkasan.
@@ -40,7 +40,7 @@
       if (String(method).toUpperCase() === 'GET' && u.host === 'api.arsip.go.id') {
         const src = C.SOURCES.find(s => s.path === u.pathname);
         const t = src && C.sanitizeTemplate(u.toString());
-        if (t) addTemplate(src.path, t, true);
+        if (t && C.isValidTemplate(src.path, t)) addTemplate(src.path, t, true);
       }
     } catch (e) { /* abaikan */ }
     return oOpen.apply(this, arguments);
@@ -94,8 +94,8 @@
     try {
       const kv = await bridge('getKV', { keys: ['srk_templates', 'srk_settings', 'srk_last_check'] });
       const st = kv.srk_templates || {};
-      Object.keys(st).forEach(p => (st[p] || []).forEach(u => addTemplate(p, u, false)));
-      settings = Object.assign({}, C.DEFAULT_SETTINGS, kv.srk_settings || {});
+      Object.keys(st).forEach(p => (st[p] || []).forEach(u => { if (C.isValidTemplate(p, u)) addTemplate(p, u, false); }));
+      settings = C.sanitizeSettings(kv.srk_settings);
       lastCheck = kv.srk_last_check || null;
       fillPanel();
     } catch (e) { log('Gagal memuat pengaturan: ' + e.message); }
@@ -107,6 +107,8 @@
 
   async function api(url, opt) {
     opt = opt || {};
+    const target = new URL(url);
+    if (target.protocol !== 'https:' || target.host !== 'api.arsip.go.id') throw new Error('Alamat API di luar api.arsip.go.id ditolak');
     for (let attempt = 0; attempt < 4; attempt++) {
       if (!session) throw new Error('Sesi SRIKANDI belum terdeteksi. Buka salah satu halaman daftar naskah dulu.');
       const headers = { 'Accept': 'application/json', 'Authorization': session };
@@ -144,15 +146,6 @@
         await sleep(delay);
       } while (cursor);
     }
-  }
-
-  async function firstPage(src) {
-    const out = [];
-    for (const t of templates[src.path] ? [...templates[src.path].values()] : []) {
-      const u = new URL(t); u.searchParams.set('rows', '50');
-      out.push(...rowsOf(await api(u.toString())).rows);
-    }
-    return out;
   }
 
   async function klasifikasi(id) {
@@ -222,96 +215,135 @@
   }
 
   /* ---------- 5. Unduh sesuai pengaturan ---------- */
+  function saveIndex(records, prefix) {
+    if (!records.length) return Promise.resolve();
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    const name = C.ROOT_FOLDER + '/_INDEKS/' + prefix + '_' + stamp + '.csv';
+    return bridge('saveText', { filename: name, text: C.toCsv(records) })
+      .then(() => log('Indeks disimpan: ' + name))
+      .catch(e => log('Gagal menyimpan indeks: ' + e.message));
+  }
+
   async function run(opts) {
     running = true; stopFlag = false; refreshPanel();
     const started = Date.now();
     const records = [];
     const stats = { ok: 0, skip: 0, dup: 0, fail: 0, filtered: 0 };
     const ctx = { seen: new Set(), done: new Set(), stats, fatal: null };
-    try { ctx.done = new Set(await bridge('getDone')); } catch (e) { log('Gagal membaca riwayat unduhan: ' + e.message); }
     const range = C.dateRange(opts.range, opts.from, opts.to);
     const klas = C.parseList(opts.klas), kws = C.parseList(opts.keyword);
     const known = [], completed = [];
     const pool = new Set();
     let processed = 0;
-    log('Mulai. Filter: ' + C.describeFilter(opts) + '. Riwayat: ' + ctx.done.size + ' file.');
-
-    outer:
-    for (const src of C.SOURCES.filter(s => opts.sources.includes(s.key))) {
-      if (!templates[src.path] || !templates[src.path].size) { log('Lewati ' + src.label + ': halaman daftarnya belum pernah dibuka.'); continue; }
-      log('Membaca ' + src.label + ' ...');
-      for await (const row of iterateRows(src, opts.rows, Math.min(opts.delay, 1000))) {
-        if (stopFlag || ctx.fatal) break outer;
-        known.push(C.knownKey(src, row));
-        const it = C.normalizeRow(src, row);
-        if (!C.inRange(it, range) || !C.matchKeyword(it, kws)) { stats.filtered++; continue; }
-        const kl = C.resolveKlasifikasi(it, await klasifikasi(it.klasifikasiId));
-        if (!C.matchKlas(kl.kode, klas)) { stats.filtered++; continue; }
-        if (opts.limit && processed >= opts.limit) break outer;
-        processed++;
-        const rec = newRec(it, kl);
-        records.push(rec);
-        let p;
-        p = (async () => { try { await processItem(it, rec, ctx); setStats(stats, processed); } finally { pool.delete(p); } })();
-        pool.add(p);
-        if (pool.size >= opts.conc) await Promise.race(pool);
-        await sleep(opts.delay);
+    try {
+      try { ctx.done = new Set(await bridge('getDone')); } catch (e) { log('Gagal membaca riwayat unduhan: ' + e.message); }
+      log('Mulai. Filter: ' + C.describeFilter(opts) + '. Riwayat: ' + ctx.done.size + ' file.');
+      outer:
+      for (const src of C.SOURCES.filter(s => opts.sources.includes(s.key))) {
+        if (!templates[src.path] || !templates[src.path].size) { log('Lewati ' + src.label + ': halaman daftarnya belum pernah dibuka.'); continue; }
+        log('Membaca ' + src.label + ' ...');
+        for await (const row of iterateRows(src, opts.rows, Math.min(opts.delay, 1000))) {
+          if (stopFlag || ctx.fatal) break outer;
+          known.push(C.knownKey(src, row));
+          const it = C.normalizeRow(src, row);
+          if (!C.inRange(it, range) || !C.matchKeyword(it, kws)) { stats.filtered++; continue; }
+          const kl = C.resolveKlasifikasi(it, await klasifikasi(it.klasifikasiId));
+          if (!C.matchKlas(kl.kode, klas)) { stats.filtered++; continue; }
+          if (opts.limit && processed >= opts.limit) break outer;
+          processed++;
+          const rec = newRec(it, kl);
+          records.push(rec);
+          let p;
+          p = (async () => { try { await processItem(it, rec, ctx); setStats(stats, processed); } finally { pool.delete(p); } })();
+          pool.add(p);
+          if (pool.size >= opts.conc) await Promise.race(pool);
+          await sleep(opts.delay);
+        }
+        await Promise.all(pool);
+        if (!stopFlag && !ctx.fatal && !(opts.limit && processed >= opts.limit)) completed.push(src.key);
       }
+    } catch (e) {
+      log('Berhenti karena galat: ' + e.message);
+    } finally {
+      // Indeks dan catatan tetap disimpan walau proses berhenti di tengah (temuan audit #4).
       await Promise.all(pool);
-      if (!stopFlag && !ctx.fatal) completed.push(src.key);
+      if (ctx.fatal) log('Berhenti: ' + ctx.fatal.message);
+      try { await bridge('addKnown', { keys: known, baseline: completed }); } catch (e) { /* abaikan */ }
+      await saveIndex(records, 'INDEKS_ARSIP');
+      const menit = ((Date.now() - started) / 60000).toFixed(1);
+      log('Selesai dalam ' + menit + ' menit. Berhasil ' + stats.ok + ', sudah ada/dilewati ' + stats.skip + ', duplikat ' + stats.dup + ', gagal ' + stats.fail + ', tidak cocok filter ' + stats.filtered + '.');
+      running = false; refreshPanel();
     }
-    await Promise.all(pool);
-    if (ctx.fatal) log('Berhenti: ' + ctx.fatal.message);
-
-    try { await bridge('addKnown', { keys: known, baseline: completed }); } catch (e) { /* abaikan */ }
-    if (records.length) {
-      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-      const name = C.ROOT_FOLDER + '/_INDEKS/INDEKS_ARSIP_' + stamp + '.csv';
-      try { await bridge('saveText', { filename: name, text: C.toCsv(records), mime: 'text/csv' }); log('Indeks disimpan: ' + name); }
-      catch (e) { log('Gagal menyimpan indeks: ' + e.message); }
-    }
-    const menit = ((Date.now() - started) / 60000).toFixed(1);
-    log('Selesai dalam ' + menit + ' menit. Berhasil ' + stats.ok + ', sudah ada/dilewati ' + stats.skip + ', duplikat ' + stats.dup + ', gagal ' + stats.fail + ', tidak cocok filter ' + stats.filtered + '.');
-    running = false; refreshPanel();
   }
 
   /* ---------- 6. Periksa naskah baru ---------- */
+  const CHECK_MAX_PAGES = 5;   // sampai 250 naskah terbaru per daftar
+
   async function runCheck(payload) {
-    const out = { newItems: [], downloaded: 0, error: null, manual: !!payload.manual };
+    const out = { newItems: [], downloaded: 0, failed: 0, error: null, manual: !!payload.manual };
     if (running) { out.error = 'busy'; return out; }
     running = true; refreshPanel();
+    const records = [];
     try {
       await waitSession(60000);
-      const kv = await bridge('getKV', { keys: ['srk_known', 'srk_baseline'] });
-      const known = new Set(kv.srk_known || []), baseline = new Set(kv.srk_baseline || []);
-      const addKnown = [], newBaseline = [];
+      const kv = await bridge('getKV', { keys: ['srk_known', 'srk_baseline', 'srk_retry'] });
+      const known = new Set(kv.srk_known || []), baseline = new Set(kv.srk_baseline || []), retry = new Set(kv.srk_retry || []);
+      const addKnown = [], newBaseline = [], retryAdd = [], retryDel = [];
       const ctx = { seen: new Set(), done: new Set(await bridge('getDone')), stats: { ok: 0, skip: 0, dup: 0, fail: 0 }, fatal: null };
+      const range = C.dateRange(settings.range, settings.from, settings.to);
+      const klas = C.parseList(settings.klas), kws = C.parseList(settings.keyword);
       for (const src of C.SOURCES.filter(s => settings.sources.includes(s.key))) {
         if (!templates[src.path] || !templates[src.path].size) continue;
-        const rows = await firstPage(src);
         const isBase = !baseline.has(src.key);
-        for (const row of rows) {
-          const k = C.knownKey(src, row);
-          if (known.has(k)) continue;
-          known.add(k); addKnown.push(k);
-          if (isBase) continue;
-          const it = C.normalizeRow(src, row);
-          const kl = C.resolveKlasifikasi(it, await klasifikasi(it.klasifikasiId));
-          const rec = newRec(it, kl);
-          if (settings.autoDownload) await processItem(it, rec, ctx);
-          if (ctx.fatal) throw ctx.fatal;
-          out.newItems.push({ group: it.group, sourceShort: it.sourceShort, kode: kl.kode, nomor: it.nomor, hal: it.hal, tanggal: it.tanggal, result: rec.result || 'BARU' });
+        for (const t of templates[src.path].values()) {
+          let cursor = null;
+          for (let page = 0; page < CHECK_MAX_PAGES; page++) {
+            const u = new URL(t); u.searchParams.set('rows', '50');
+            if (cursor) u.searchParams.set('cursor', cursor);
+            const pg = rowsOf(await api(u.toString()));
+            let fresh = 0;
+            for (const row of pg.rows) {
+              const k = C.knownKey(src, row);
+              const isNew = !known.has(k), isRetry = retry.has(k);
+              if (!isNew && !isRetry) continue;
+              fresh++;
+              if (isNew) { known.add(k); addKnown.push(k); }
+              if (isBase) continue;
+              const it = C.normalizeRow(src, row);
+              const kl = C.resolveKlasifikasi(it, await klasifikasi(it.klasifikasiId));
+              const rec = newRec(it, kl);
+              if (settings.autoDownload) {
+                // Unduh otomatis mengikuti filter yang sama dengan unduhan manual (temuan audit #1).
+                if (C.inRange(it, range) && C.matchKeyword(it, kws) && C.matchKlas(kl.kode, klas)) {
+                  await processItem(it, rec, ctx);
+                  records.push(rec);
+                  // Unduhan gagal dicoba lagi pada pemeriksaan berikutnya (temuan audit #3).
+                  if (rec.result === 'GAGAL') retryAdd.push(k); else if (isRetry) retryDel.push(k);
+                } else { rec.result = 'TIDAK COCOK FILTER'; if (isRetry) retryDel.push(k); }
+              }
+              if (ctx.fatal) throw ctx.fatal;
+              if (isNew) out.newItems.push({ group: it.group, sourceShort: it.sourceShort, kode: kl.kode, nomor: it.nomor, hal: it.hal, tanggal: it.tanggal, result: rec.result || 'BARU' });
+            }
+            cursor = pg.next;
+            // Lanjut ke halaman berikutnya hanya bila halaman ini masih berisi naskah baru (temuan audit #2).
+            if (!cursor || fresh === 0 || isBase) break;
+          }
         }
         if (isBase) newBaseline.push(src.key);
       }
       await bridge('addKnown', { keys: addKnown, baseline: newBaseline });
-      out.downloaded = ctx.stats.ok;
+      if (retryAdd.length || retryDel.length) await bridge('updRetry', { add: retryAdd, remove: retryDel });
+      out.downloaded = ctx.stats.ok; out.failed = retryAdd.length;
       log('Pemeriksaan: ' + out.newItems.length + ' naskah baru' + (out.downloaded ? ', ' + out.downloaded + ' diunduh' : '') +
+        (out.failed ? ', ' + out.failed + ' gagal (dicoba lagi nanti)' : '') +
         (newBaseline.length ? '. Data awal dicatat untuk: ' + newBaseline.join(', ') : '') + '.');
     } catch (e) {
       out.error = /Sesi|401|403/.test(e.message) ? 'session' : e.message;
       log('Pemeriksaan gagal: ' + e.message);
-    } finally { running = false; refreshPanel(); }
+    } finally {
+      await saveIndex(records, 'INDEKS_PANTAU');   // unduh otomatis juga tercatat di indeks (temuan audit #4)
+      running = false; refreshPanel();
+    }
     return out;
   }
 
@@ -355,7 +387,7 @@
       delay: Math.max(300, Number($('#srk-delay').value) || 800),
       rows: 50,
       monitor: $('#srk-mon').value, dailyAt: $('#srk-daily').value || '07:30',
-      autoDownload: $('#srk-autodl').checked, autoOpenTab: $('#srk-autotab').checked
+      autoDownload: $('#srk-autodl').checked, autoOpenTab: $('#srk-autotab').checked, notifDetail: $('#srk-ndetail').checked
     };
   }
 
@@ -366,7 +398,7 @@
     $('#srk-klas').value = settings.klas; $('#srk-kw').value = settings.keyword;
     $('#srk-layout').value = settings.layout; $('#srk-conc').value = String(settings.conc); $('#srk-delay').value = settings.delay;
     $('#srk-mon').value = settings.monitor; $('#srk-daily').value = settings.dailyAt;
-    $('#srk-autodl').checked = settings.autoDownload; $('#srk-autotab').checked = settings.autoOpenTab;
+    $('#srk-autodl').checked = settings.autoDownload; $('#srk-autotab').checked = settings.autoOpenTab; $('#srk-ndetail').checked = settings.notifDetail;
     toggleFields(); refreshPanel();
   }
 
@@ -404,11 +436,11 @@
       #srk-panel .credit{white-space:pre-line;font-size:10.5px;line-height:1.45;color:#64748b;border-top:1px solid #e2e8f0;margin-top:10px;padding-top:8px}
       #srk-panel .sub{font-size:12px;color:#047D78;margin:-2px 0 4px}`));
 
-    const fab = el('button', { id: 'srk-fab', title: 'JALA: Jaring Arsip Lokal Otomatis' });
+    const fab = el('button', { id: 'srk-fab', title: 'JALA Arsip: salinan arsip pribadi pengguna SRIKANDI' });
     fab.innerHTML = '<svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-4px;margin-right:6px"><path d="M8 2.6 L3 11.6 M8 2.6 L13 11.6 M8 2.6 V12.3 M4.9 8.2 Q8 9.4 11.1 8.2" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><circle cx="3.2" cy="12.2" r="1.7" fill="#CDDC29"/><circle cx="8" cy="13.1" r="1.7" fill="#CDDC29"/><circle cx="12.8" cy="12.2" r="1.7" fill="#CDDC29"/></svg>JALA';
     panel = el('div', { id: 'srk-panel' });
-    panel.append(el('h3', {}, 'JALA v1.2'),
-      el('div', { className: 'sub' }, 'Jaring Arsip Lokal Otomatis untuk SRIKANDI'),
+    panel.append(el('h3', {}, 'JALA Arsip v1.3'),
+      el('div', { className: 'sub' }, 'Salinan arsip pribadi untuk pengguna SRIKANDI'),
       el('div', { className: 'note' }, 'Hanya membaca. Salinan PDF disimpan di Downloads/' + C.ROOT_FOLDER + '.'),
       el('div', { id: 'srk-session', className: 'row' }));
 
@@ -435,8 +467,7 @@
     panel.append(row(test, el('label', { htmlFor: 'srk-test' }, 'Mode uji: berhenti setelah 5 naskah')));
     const go = el('button', { id: 'srk-go', className: 'act', style: 'background:#047D78;color:#fff' }, 'Mulai unduh');
     const stop = el('button', { id: 'srk-stop', className: 'act', style: 'background:#e2e8f0' }, 'Berhenti');
-    const reset = el('button', { id: 'srk-reset', className: 'act', style: 'background:#fff;border:1px solid #cbd5e1;margin-left:auto' }, 'Lupakan riwayat');
-    panel.append(row(go, stop, reset));
+    panel.append(row(go, stop), el('div', { className: 'note' }, 'Riwayat unduhan diatur di halaman Opsi: klik kanan ikon JALA Arsip di toolbar Chrome, lalu pilih Opsi.'));
 
     // Pemantauan
     panel.append(el('h4', { className: 'mon' }, '3. Pantau naskah baru otomatis'));
@@ -448,6 +479,8 @@
     panel.append(row(autodl, el('label', { htmlFor: 'srk-autodl' }, 'Langsung unduh naskah baru ke folder arsip')));
     const autotab = el('input', { type: 'checkbox', id: 'srk-autotab', checked: true });
     panel.append(row(autotab, el('label', { htmlFor: 'srk-autotab' }, 'Buka tab SRIKANDI di latar belakang bila tertutup')));
+    const ndet = el('input', { type: 'checkbox', id: 'srk-ndetail', checked: true });
+    panel.append(row(ndet, el('label', { htmlFor: 'srk-ndetail' }, 'Tampilkan perihal naskah di notifikasi (matikan bila sering berbagi layar)')));
     const checkBtn = el('button', { id: 'srk-check', className: 'act', style: 'background:#7f8a00;color:#fff' }, 'Periksa sekarang');
     const testN = el('button', { id: 'srk-testn', className: 'act', style: 'background:#fff;border:1px solid #cbd5e1' }, 'Tes notifikasi');
     panel.append(row(checkBtn, testN), el('div', { id: 'srk-last', className: 'note' }, 'Belum pernah memeriksa'),
@@ -470,11 +503,6 @@
       run(o).catch(e => { log('Berhenti: ' + e.message); running = false; refreshPanel(); });
     };
     stop.onclick = () => { stopFlag = true; log('Menghentikan setelah naskah yang sedang diproses...'); };
-    reset.onclick = async () => {
-      if (running) return;
-      if (!window.confirm('Lupakan riwayat unduhan? Agen akan mengunduh ulang semua file pada proses berikutnya. File di laptop tidak dihapus.')) return;
-      try { await bridge('resetDone'); log('Riwayat unduhan dikosongkan.'); } catch (e) { log('Gagal: ' + e.message); }
-    };
     checkBtn.onclick = async () => {
       if (running) return;
       log('Memeriksa naskah baru...');

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Opsi JALA Arsip</title>
+<style>
+  body{font:14px/1.6 system-ui,"Segoe UI",sans-serif;color:#0F2E2C;background:#F2F7F6;margin:0;padding:32px}
+  main{max-width:640px;margin:0 auto;background:#fff;border:1px solid #CFE3E0;border-radius:12px;padding:24px 28px}
+  h1{font-size:20px;color:#047D78;margin:0 0 4px}
+  h2{font-size:15px;margin:22px 0 6px}
+  p{margin:4px 0 10px;color:#47625F}
+  button{padding:7px 14px;border-radius:6px;border:1px solid #CFE3E0;background:#fff;font-weight:600;cursor:pointer}
+  button.danger{border-color:#e7b3b3;color:#9b1c1c}
+  dl{display:grid;grid-template-columns:220px 1fr;gap:4px 12px;margin:0}
+  dt{color:#47625F} dd{margin:0;font-weight:600}
+  #msg{margin-top:16px;font-weight:600;color:#047D78}
+  footer{margin-top:24px;font-size:12px;color:#47625F;border-top:1px solid #CFE3E0;padding-top:12px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Opsi JALA Arsip</h1>
+  <p>Halaman ini hanya bisa dibuka dari Chrome, bukan dari situs mana pun. Karena itu tombol penghapus riwayat ditempatkan di sini.</p>
+
+  <h2>Ringkasan</h2>
+  <dl id="stats"><dt>Memuat...</dt><dd></dd></dl>
+
+  <h2>Lupakan riwayat unduhan</h2>
+  <p>Pada proses berikutnya JALA akan mengunduh ulang semua naskah. File di laptop tidak dihapus.</p>
+  <button class="danger" id="resetDone">Lupakan riwayat unduhan</button>
+
+  <h2>Ulangi data awal pemantauan</h2>
+  <p>Pemeriksaan berikutnya hanya mencatat data awal tanpa notifikasi, lalu pemantauan berjalan normal lagi.</p>
+  <button id="resetKnown">Ulangi data awal</button>
+
+  <h2>Lupakan alamat daftar</h2>
+  <p>Gunakan bila SRIKANDI berubah. Setelah ini, buka lagi setiap daftar naskah sekali.</p>
+  <button id="resetTemplates">Lupakan alamat daftar</button>
+
+  <div id="msg" role="status"></div>
+  <footer>JALA Arsip dikembangkan oleh Deddy Eko Heryanto, S.T., JFT Pranata Komputer Ahli Muda, Perpustakaan Poltekkes Kemenkes Palangka Raya. Bukan produk resmi ANRI.</footer>
+</main>
+<script src="options.js"></script>
+</body>
+</html>

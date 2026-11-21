@@ -1,4 +1,4 @@
-/* JALA (Jaring Arsip Lokal Otomatis) v1.2 - service worker.
+/* JALA Arsip v1.3 - service worker.
  * Unduhan, penyimpanan riwayat/pengaturan, jadwal pemeriksaan, notifikasi desktop. */
 'use strict';
 importScripts('core.js');
@@ -12,19 +12,23 @@ const ALARM = 'srk-check';
 /* ---------- Penyimpanan ---------- */
 const get = async k => (await chrome.storage.local.get(k))[k];
 const set = obj => chrome.storage.local.set(obj);
+// Semua penulisan storage dijalankan berurutan agar tidak saling menimpa (temuan audit #5).
+let chain = Promise.resolve();
+const serial = fn => { const r = chain.then(fn, fn); chain = r.catch(() => {}); return r; };
+
 async function settings() { return Object.assign({}, C.DEFAULT_SETTINGS, (await get('srk_settings')) || {}); }
 
-async function addToSet(key, items) {
+function addToSet(key, items) { return serial(() => addToSetNow(key, items)); }
+async function addToSetNow(key, items) {
   const cur = new Set((await get(key)) || []);
   (items || []).forEach(k => cur.add(k));
   await set({ [key]: [...cur] });
   return cur.size;
 }
 
-async function saveTemplate(path, url) {
-  if (!C.SOURCES.some(s => s.path === path)) return false;
-  const u = new URL(url);
-  if (u.host !== 'api.arsip.go.id') return false;
+function saveTemplate(path, url) { return serial(() => saveTemplateNow(path, url)); }
+async function saveTemplateNow(path, url) {
+  if (!C.isValidTemplate(path, url)) return false;
   const t = (await get('srk_templates')) || {};
   const list = t[path] || [];
   if (!list.includes(url)) { list.push(url); t[path] = list.slice(-6); await set({ srk_templates: t }); }
@@ -58,11 +62,15 @@ function waitForDownload(id, timeoutMs) {
 async function download(url, filename) {
   const u = new URL(url);
   if (u.protocol !== 'https:' || u.host !== ALLOWED_DL_HOST) throw new Error('Alamat unduhan di luar ' + ALLOWED_DL_HOST);
+  if (!C.isSafeDownloadName(filename, false)) throw new Error('Nama file di luar folder SRIKANDI_ARSIP ditolak');
   const id = await chrome.downloads.download({ url, filename, conflictAction: 'uniquify', saveAs: false });
   return { filename: (await waitForDownload(id, 180000)) || filename };
 }
 
 async function saveText(filename, text, mime) {
+  if (!C.isSafeDownloadName(filename, true)) throw new Error('Nama indeks tidak valid');
+  if (typeof text !== 'string' || text.length > 20 * 1024 * 1024) throw new Error('Indeks terlalu besar');
+  mime = 'text/csv';
   const b64 = btoa(unescape(encodeURIComponent(text)));
   const id = await chrome.downloads.download({ url: 'data:' + (mime || 'text/plain') + ';charset=utf-8;base64,' + b64, filename, conflictAction: 'uniquify', saveAs: false });
   return { filename: (await waitForDownload(id, 60000)) || filename };
@@ -122,12 +130,12 @@ async function startCheck() {
 async function handleCheckResult(r, tabId) {
   r = r || { newItems: [] };
   await set({ srk_last_check: { at: Date.now(), n: (r.newItems || []).length, error: r.error || null } });
+  if (r.error === 'busy') return;   // tab sedang bekerja: jangan ditutup (temuan audit #6)
   const { srk_auto_tab } = await chrome.storage.session.get('srk_auto_tab');
   if (srk_auto_tab != null && srk_auto_tab === tabId) {
     chrome.tabs.remove(tabId).catch(() => {});
     chrome.storage.session.remove('srk_auto_tab');
   }
-  if (r.error === 'busy') return;
   if (r.error === 'session') {
     const last = (await get('srk_session_warned')) || 0;
     if (r.manual || Date.now() - last > 6 * 3600 * 1000) {
@@ -138,7 +146,7 @@ async function handleCheckResult(r, tabId) {
   }
   if (r.error) { await notify('srk-err', 'Pemeriksaan SRIKANDI gagal', String(r.error).slice(0, 180)); return; }
   if (r.newItems && r.newItems.length) {
-    const t = C.notifText(r.newItems);
+    const t = C.notifText(r.newItems, (await settings()).notifDetail);
     await setBadge(((await get('srk_badge')) || 0) + t.count);
     const extra = r.downloaded ? '\n' + r.downloaded + ' file sudah diunduh ke folder arsip.' : '';
     await notify('srk-new-' + Date.now(), t.title, t.message + extra);
@@ -148,8 +156,21 @@ async function handleCheckResult(r, tabId) {
 }
 
 /* ---------- Pesan dari halaman ---------- */
+const OPTIONS_URL = chrome.runtime.getURL('options.html');
 chrome.runtime.onMessage.addListener((msg, sender, send) => {
-  if (!sender.url || !sender.url.startsWith(ORIGIN)) { send({ ok: false, error: 'Pengirim tidak dikenal' }); return; }
+  // Perintah yang menghapus riwayat hanya diterima dari halaman opsi milik ekstensi (temuan audit #8).
+  if (sender.id === chrome.runtime.id && sender.url && sender.url.startsWith(OPTIONS_URL)) {
+    const ops = {
+      resetDone: () => serial(() => chrome.storage.local.remove('srk_done_keys')).then(() => true),
+      resetKnown: () => serial(() => chrome.storage.local.remove(['srk_known', 'srk_baseline', 'srk_retry'])).then(() => true),
+      resetTemplates: () => serial(() => chrome.storage.local.remove('srk_templates')).then(() => true),
+      stats: async () => ({ done: ((await get('srk_done_keys')) || []).length, known: ((await get('srk_known')) || []).length, retry: ((await get('srk_retry')) || []).length, templates: Object.values((await get('srk_templates')) || {}).reduce((a, b) => a + b.length, 0), last: (await get('srk_last_check')) || null })
+    };
+    const job = ops[msg.type] ? ops[msg.type]() : Promise.reject(new Error('Perintah tidak dikenal'));
+    Promise.resolve(job).then(data => send({ ok: true, data })).catch(e => send({ ok: false, error: e.message }));
+    return true;
+  }
+  if (!sender.url || !sender.url.startsWith(ORIGIN) || !sender.tab) { send({ ok: false, error: 'Pengirim tidak dikenal' }); return; }
   const p = msg.payload || {};
   const tabId = sender.tab && sender.tab.id;
   const onlySrk = o => Object.fromEntries(Object.entries(o || {}).filter(([k]) => k.startsWith('srk_')));
@@ -158,11 +179,15 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
     saveText: () => saveText(p.filename, p.text, p.mime),
     getDone: async () => (await get('srk_done_keys')) || [],
     markDone: () => addToSet('srk_done_keys', p.keys),
-    resetDone: () => chrome.storage.local.remove('srk_done_keys').then(() => true),
-    getKV: async () => onlySrk(await chrome.storage.local.get((p.keys || []).filter(k => k.startsWith('srk_')))),
-    setKV: () => set(onlySrk(p.obj)).then(() => true),
+    getKV: async () => onlySrk(await chrome.storage.local.get((p.keys || []).filter(k => ['srk_templates', 'srk_settings', 'srk_last_check', 'srk_known', 'srk_baseline', 'srk_retry'].includes(k)))),
+    setKV: () => serial(() => set({ srk_settings: C.sanitizeSettings(p.obj && p.obj.srk_settings) })).then(() => true),
     saveTemplate: () => saveTemplate(p.path, p.url),
     addKnown: async () => { await addToSet('srk_known', p.keys); await addToSet('srk_baseline', p.baseline); return true; },
+    updRetry: () => serial(async () => {
+      const cur = new Set((await get('srk_retry')) || []);
+      (p.add || []).forEach(k => cur.add(k)); (p.remove || []).forEach(k => cur.delete(k));
+      await set({ srk_retry: [...cur] }); return cur.size;
+    }),
     applySchedule: () => schedule(),
     checkResult: () => handleCheckResult(p, tabId).then(() => true),
     testNotify: () => notify('srk-test', 'JALA', 'Notifikasi berfungsi. Naskah baru akan muncul seperti ini.')

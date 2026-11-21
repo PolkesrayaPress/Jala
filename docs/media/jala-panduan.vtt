@@ -2,11 +2,11 @@ WEBVTT
 
 1
 00:00:00.300 --> 00:00:04.500
-Panduan JALA: Panduan singkat memasang, mengaktifkan, dan memakai JALA untuk menyalin naskah SRIKANDI Anda.
+Panduan JALA Arsip: Panduan singkat memasang, mengaktifkan, dan memakai JALA Arsip untuk menyalin naskah SRIKANDI Anda.
 
 2
 00:00:04.800 --> 00:00:10.000
-Unduh JALA: Buka situs JALA, lalu klik Unduh JALA 1.2. File jala-v1.2.0.zip tersimpan di folder Downloads.
+Unduh JALA: Buka situs JALA, lalu klik Unduh JALA Arsip 1.3. File jala-arsip-v1.3.0.zip tersimpan di folder Downloads.
 
 3
 00:00:10.300 --> 00:00:16.500
@@ -30,7 +30,7 @@ Pilih folder jala: Pilih folder jala yang tadi diekstrak, lalu klik Select Folde
 
 8
 00:00:36.800 --> 00:00:42.000
-JALA terpasang: JALA muncul di daftar ekstensi. Pastikan sakelarnya aktif.
+JALA terpasang: JALA Arsip muncul di daftar ekstensi. Pastikan sakelarnya aktif.
 
 9
 00:00:42.300 --> 00:00:47.500
@@ -66,7 +66,7 @@ Unduh semuanya: Hapus centang Mode uji, lalu klik Mulai unduh. Biarkan tab SRIKA
 
 17
 00:01:29.300 --> 00:01:35.500
-Pantau naskah baru: Pilih jadwal pemeriksaan, misalnya setiap 1 jam. Centang Langsung unduh bila naskah baru ingin langsung disimpan.
+Pantau naskah baru: Pilih jadwal pemeriksaan, misalnya setiap 1 jam. Unduh otomatis mengikuti filter di bagian 2, dan unduhan gagal dicoba lagi.
 
 18
 00:01:35.800 --> 00:01:41.000
@@ -79,3 +79,7 @@ Notifikasi desktop: Bila ada naskah baru, notifikasi muncul di desktop. Klik not
 20
 00:01:46.800 --> 00:01:53.000
 Indeks arsip: Setiap proses menyimpan indeks CSV di folder _INDEKS. Buka dengan Excel untuk mencari dan memeriksa naskah.
+
+21
+00:01:53.300 --> 00:01:58.500
+Halaman Opsi: Klik kanan ikon JALA Arsip lalu pilih Opsi untuk melihat ringkasan dan mengatur riwayat unduhan.

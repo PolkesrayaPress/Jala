@@ -1,4 +1,4 @@
-/* JALA (Jaring Arsip Lokal Otomatis) - fungsi murni (tanpa akses jaringan).
+/* JALA Arsip (Jaring Arsip Lokal Otomatis) - fungsi murni (tanpa akses jaringan).
  * Dipakai oleh agent.js (halaman), background.js (service worker), dan diuji dengan Node. */
 (function (root) {
   'use strict';
@@ -29,8 +29,46 @@
     monitor: 'off',        // off | 30 | 60 | 180 | 360 | daily
     dailyAt: '07:30',
     autoDownload: false,
-    autoOpenTab: true
+    autoOpenTab: true,
+    notifDetail: true      // tampilkan perihal naskah di notifikasi
   };
+
+  const ENUMS = { range: ['all', 'year', 'month', 'week', '30d', 'custom'], layout: ['year', 'month'], monitor: ['off', '30', '60', '180', '360', 'daily'] };
+  const DATE_RE = /^(\d{4}-\d{2}-\d{2})?$/;
+
+  // Hanya menerima pengaturan yang dikenal dengan tipe yang benar; selebihnya memakai nilai bawaan.
+  function sanitizeSettings(o) {
+    o = o && typeof o === 'object' ? o : {};
+    const d = DEFAULT_SETTINGS, r = {};
+    const keys = new Set(SOURCES.map(x => x.key));
+    r.sources = Array.isArray(o.sources) ? o.sources.filter(k => keys.has(k)) : d.sources.slice();
+    Object.keys(ENUMS).forEach(k => { r[k] = ENUMS[k].includes(String(o[k])) ? String(o[k]) : d[k]; });
+    r.from = DATE_RE.test(String(o.from || '')) ? String(o.from || '') : '';
+    r.to = DATE_RE.test(String(o.to || '')) ? String(o.to || '') : '';
+    r.klas = String(o.klas == null ? '' : o.klas).slice(0, 200);
+    r.keyword = String(o.keyword == null ? '' : o.keyword).slice(0, 200);
+    r.conc = [1, 2, 3].includes(Number(o.conc)) ? Number(o.conc) : d.conc;
+    r.delay = Math.min(10000, Math.max(300, Number(o.delay) || d.delay));
+    r.rows = 50;
+    r.dailyAt = /^\d{1,2}:\d{2}$/.test(String(o.dailyAt || '')) ? String(o.dailyAt) : d.dailyAt;
+    ['autoDownload', 'autoOpenTab', 'notifDetail'].forEach(k => { r[k] = typeof o[k] === 'boolean' ? o[k] : d[k]; });
+    return r;
+  }
+
+  // Alamat daftar yang boleh dipakai: hanya https://api.arsip.go.id dengan path sumber yang dikenal.
+  function isValidTemplate(path, url) {
+    try {
+      const u = new URL(url);
+      return u.protocol === 'https:' && u.host === 'api.arsip.go.id' && u.pathname === path && SOURCES.some(x => x.path === path);
+    } catch (e) { return false; }
+  }
+
+  // Nama file unduhan harus berada di dalam folder arsip.
+  function isSafeDownloadName(name, indexOnly) {
+    const n = String(name || '');
+    if (n.length > 400 || /(^|\/)\.\.?(\/|$)/.test(n) || n.startsWith('/') || /^[A-Za-z]:/.test(n) || /\\/.test(n)) return false;
+    return indexOnly ? /^SRIKANDI_ARSIP\/_INDEKS\/[\w.-]+\.csv$/.test(n) : /^SRIKANDI_ARSIP\/[^\0]+\.[a-z0-9]{1,5}$/.test(n);
+  }
 
   const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
@@ -202,10 +240,14 @@
     return t.getTime();
   }
 
-  function notifText(items) {
+  function notifText(items, detail) {
     // satu baris per nomor naskah (naskah yang sama bisa muncul di dua daftar)
     const seen = new Set(), uniq = [];
     items.forEach(i => { const k = i.nomor || i.hal; if (!seen.has(k)) { seen.add(k); uniq.push(i); } });
+    if (detail === false) {
+      const per = {}; uniq.forEach(i => { const k = i.sourceShort || i.group; per[k] = (per[k] || 0) + 1; });
+      return { count: uniq.length, title: 'SRIKANDI: ' + uniq.length + ' naskah baru', message: Object.keys(per).map(k => k + ': ' + per[k]).join(', ') + '. Buka SRIKANDI untuk melihat isinya.' };
+    }
     const lines = uniq.slice(0, 3).map(i => (i.sourceShort || i.group) + ' | ' + (i.kode || (i.nomor || '').split('/')[0] || '-') + ' | ' + String(i.hal || '').slice(0, 60));
     if (uniq.length > 3) lines.push('+' + (uniq.length - 3) + ' naskah lainnya');
     return { count: uniq.length, title: 'SRIKANDI: ' + uniq.length + ' naskah baru', message: lines.join('\n') };
@@ -216,7 +258,8 @@
     'Kode Klasifikasi', 'Nama Klasifikasi', 'Asal Klasifikasi', 'Status', 'File di SRIKANDI', 'Lokasi Lokal', 'Hasil', 'Catatan'];
 
   function csvCell(v) {
-    const s = String(v == null ? '' : v);
+    let s = String(v == null ? '' : v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;   // cegah injeksi formula di Excel
     return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   }
 
@@ -231,6 +274,7 @@
   }
 
   const api = {
+    sanitizeSettings, isValidTemplate, isSafeDownloadName,
     ROOT_FOLDER, LIST_URL, SOURCES, DEFAULT_SETTINGS, BULAN,
     sanitize, kodeFromNomor, dateOf, yearOf, extOf,
     dateRange, inRange, parseList, matchKlas, matchKeyword, describeFilter,
