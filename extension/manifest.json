@@ -1,0 +1,57 @@
+{
+  "manifest_version": 3,
+  "name": "JALA: Jaring Arsip Lokal Otomatis",
+  "version": "1.2.0",
+  "description": "Salinan PDF naskah SRIKANDI Anda per tahun dan klasifikasi, plus notifikasi naskah baru. Hanya membaca. Bukan produk ANRI.",
+  "permissions": [
+    "downloads",
+    "storage",
+    "alarms",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://srikandi.arsip.go.id/*",
+    "https://api.arsip.go.id/*",
+    "https://s3.arsip.go.id/*"
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "JALA: buka SRIKANDI",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://srikandi.arsip.go.id/*"
+      ],
+      "js": [
+        "core.js",
+        "agent.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://srikandi.arsip.go.id/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "short_name": "JALA",
+  "author": "Deddy Eko Heryanto, S.T."
+}

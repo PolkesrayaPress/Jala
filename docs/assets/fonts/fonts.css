@@ -1,0 +1,5 @@
+/* Huruf di-hosting sendiri (SIL Open Font License) agar situs tetap rapi di jaringan kantor yang memblokir Google Fonts. */
+@font-face { font-family: "Bricolage Grotesque"; src: url("bricolage-grotesque.woff2") format("woff2"); font-weight: 200 800; font-display: swap; }
+@font-face { font-family: "Atkinson Hyperlegible Next"; src: url("atkinson-next-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Atkinson Hyperlegible Next"; src: url("atkinson-next-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Atkinson Hyperlegible Next"; src: url("atkinson-next-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }

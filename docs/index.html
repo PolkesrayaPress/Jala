@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JALA: Jaring Arsip Lokal Otomatis untuk pengguna SRIKANDI</title>
+<meta name="description" content="Ekstensi Chrome untuk menyalin naskah SRIKANDI Anda sendiri ke laptop, tersusun per tahun dan klasifikasi, dengan notifikasi naskah baru.">
+<meta name="author" content="Deddy Eko Heryanto, S.T.">
+<meta name="theme-color" content="#047D78">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32">
+<link rel="icon" href="assets/jala-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:title" content="JALA: Jaring Arsip Lokal Otomatis">
+<meta property="og:description" content="Naskah SRIKANDI Anda, tersalin rapi di laptop sendiri.">
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<link rel="stylesheet" href="assets/style.css">
+<script>
+  // Terapkan tema sebelum halaman digambar agar tidak berkedip.
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem('jala-theme'); } catch (e) {}
+    if (!t) t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+</head>
+<body>
+<a class="skip" href="#isi">Lewati ke isi</a>
+
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="#" aria-label="JALA, ke atas halaman">
+      <img src="assets/jala-icon.svg" alt="" width="34" height="34">
+      <span>JALA</span>
+    </a>
+    <nav aria-label="Navigasi utama">
+      <a href="#cara-kerja">Cara kerja</a>
+      <a href="#instalasi">Instalasi</a>
+      <a href="#pengaturan">Pengaturan</a>
+      <a href="#bantuan">Bantuan</a>
+    </nav>
+    <button class="theme" type="button" id="theme" aria-label="Ganti ke tema gelap">
+      <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+      <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="isi">
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-in">
+      <div class="hero-copy">
+        <h1>Naskah SRIKANDI Anda, tersalin rapi di laptop sendiri.</h1>
+        <p class="lead">JALA adalah ekstensi Chrome yang mengunduh salinan PDF naskah masuk dan keluar dari akun SRIKANDI Anda, lalu menyusunnya per tahun dan klasifikasi. JALA juga memberi tahu lewat notifikasi desktop bila ada naskah baru.</p>
+        <div class="cta">
+          <a class="btn primary" href="download/jala-v1.2.0.zip" download>Unduh JALA 1.2</a>
+          <a class="btn ghost" href="#instalasi">Lihat cara memasang</a>
+        </div>
+        <dl class="promise">
+          <div><dt>Akun Anda sendiri</dt><dd>Setiap pengguna login ke SRIKANDI dengan akunnya. JALA tidak meminta dan tidak menyimpan kata sandi.</dd></div>
+          <div><dt>Hanya membaca</dt><dd>Tidak menandatangani, memverifikasi, mendisposisi, atau mengubah status baca naskah.</dd></div>
+          <div><dt>Tersimpan di laptop Anda</dt><dd>Salinan PDF dan indeks Excel masuk ke folder Downloads. Tidak ada server perantara.</dd></div>
+        </dl>
+      </div>
+
+      <figure class="cast" aria-label="Ilustrasi: jala menangkap naskah lalu menyusunnya ke folder per tahun dan klasifikasi">
+        <svg id="cast" viewBox="0 0 520 470" role="img" aria-hidden="true">
+          <g class="net">
+            <line class="rope" x1="260" y1="0" x2="260" y2="40"/>
+            <g class="mesh">
+              <path d="M260 40 L118 222 M260 40 L189 236 M260 40 L260 242 M260 40 L331 236 M260 40 L402 222"/>
+              <path d="M206 109 Q260 128 314 109 M161 167 Q260 196 359 167 M118 222 Q260 262 402 222"/>
+              <path class="thin" d="M206 109 L189 236 M314 109 L331 236 M233 115 L260 242 M287 115 L260 242 M161 167 L260 242 M359 167 L260 242"/>
+            </g>
+            <g class="weights">
+              <circle cx="118" cy="222" r="8"/><circle cx="153" cy="234" r="8"/><circle cx="189" cy="240" r="8"/><circle cx="224" cy="243" r="8"/><circle cx="260" cy="244" r="8"/><circle cx="296" cy="243" r="8"/><circle cx="331" cy="240" r="8"/><circle cx="367" cy="234" r="8"/><circle cx="402" cy="222" r="8"/>
+            </g>
+          </g>
+          <g class="stream">
+            <g class="doc d1"><rect width="86" height="54" rx="7"/><text x="10" y="22">PP.03.03</text><text x="10" y="40" class="s">Surat Tugas</text></g>
+            <g class="doc d2"><rect width="86" height="54" rx="7"/><text x="10" y="22">HK.02.03</text><text x="10" y="40" class="s">Keputusan</text></g>
+            <g class="doc d3"><rect width="86" height="54" rx="7"/><text x="10" y="22">DP.04.04</text><text x="10" y="40" class="s">Sertifikat</text></g>
+            <g class="doc d4"><rect width="86" height="54" rx="7"/><text x="10" y="22">UM.01</text><text x="10" y="40" class="s">Undangan</text></g>
+          </g>
+          <g class="tree" transform="translate(70 300)">
+            <text class="t0" x="0" y="0">SRIKANDI_ARSIP</text>
+            <text class="t1" x="22" y="30">2026</text>
+            <text class="t2" x="44" y="60">Naskah Masuk</text>
+            <text class="t3" x="66" y="90">PP.03.03 - Evaluasi Program Studi</text>
+            <text class="t4" x="88" y="120">2026-11-20_PP.03.03_Surat Tugas.pdf</text>
+            <path class="branch" d="M8 8 V24 H18 M30 38 V54 H40 M52 68 V84 H62 M74 98 V114 H84"/>
+          </g>
+        </svg>
+        <button class="replay" type="button" id="replay">Putar ulang animasi</button>
+      </figure>
+    </div>
+  </section>
+
+  <!-- CARA KERJA -->
+  <section id="cara-kerja" class="band">
+    <div class="wrap">
+      <h2>Cara kerja</h2>
+      <p class="intro">JALA bekerja di dalam tab SRIKANDI yang sudah Anda buka. Alurnya selalu sama, baik saat Anda mengunduh semuanya maupun saat JALA memeriksa naskah baru secara berkala.</p>
+      <ol class="flow">
+        <li><h3>Anda login ke SRIKANDI</h3><p>Seperti biasa, dengan akun Anda sendiri. JALA memakai sesi login yang sedang aktif di tab itu.</p></li>
+        <li><h3>JALA membaca daftar naskah</h3><p>Daftar Naskah Masuk, Tembusan, Disposisi, Naskah Keluar, Verifikasi, dan Tandatangan. Halaman detail tidak dibuka, jadi status baca tidak berubah.</p></li>
+        <li><h3>PDF diunduh dan disusun</h3><p>Setiap file ditempatkan menurut tahun, kelompok, dan kode klasifikasi, lalu dicatat di indeks CSV yang bisa dibuka dengan Excel.</p></li>
+        <li><h3>Naskah baru dipantau</h3><p>Setiap 30 menit sampai sekali sehari, JALA memeriksa 50 naskah terbaru per daftar dan menampilkan notifikasi desktop bila ada yang baru.</p></li>
+      </ol>
+
+      <div class="result">
+        <div>
+          <h3>Hasilnya di laptop Anda</h3>
+          <p>Nama file memuat tanggal, nomor, dan hal naskah, sehingga mudah dicari lewat File Explorer. Naskah yang tidak punya kode klasifikasi dikumpulkan di folder tersendiri agar mudah ditinjau.</p>
+        </div>
+<pre class="tree-box" aria-label="Contoh susunan folder"><span class="f">Downloads/SRIKANDI_ARSIP/</span>
+├── <span class="f">2026/</span>
+│   ├── <span class="f">Naskah Masuk/</span>
+│   │   ├── <span class="f">PP.03.03 - Evaluasi Program Studi/</span>
+│   │   │   └── 2026-11-20_PP.03.03-F.XLI-9311-2026_ST ....pdf
+│   │   └── <span class="f">HK.02.03 - Keputusan/</span>
+│   └── <span class="f">Naskah Keluar/</span>
+├── <span class="f">2025/</span>
+└── <span class="f">_INDEKS/</span>
+    └── INDEKS_ARSIP_2026-11-21.csv</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALASI -->
+  <section id="instalasi" class="band alt">
+    <div class="wrap">
+      <h2>Instalasi</h2>
+      <p class="intro">Sekitar tiga menit. Anda hanya perlu Google Chrome di komputer Windows atau Mac dan akun SRIKANDI yang aktif.</p>
+
+      <div class="player" id="player">
+        <video id="video" controls preload="metadata" playsinline poster="media/jala-panduan-poster.jpg">
+          <source src="media/jala-panduan.mp4" type="video/mp4">
+          <track kind="captions" src="media/jala-panduan.vtt" srclang="id" label="Bahasa Indonesia">
+          Peramban Anda tidak bisa memutar video. <a href="media/jala-panduan.mp4">Unduh videonya</a>.
+        </video>
+        <div class="chapters">
+          <p class="chap-title">Lompat ke bagian video</p>
+          <ol class="steps" id="steps"></ol>
+        </div>
+      </div>
+
+      <p class="note">Tips: matikan "Ask where to save each file before downloading" di <code>chrome://settings/downloads</code> agar Chrome tidak bertanya untuk setiap file.</p>
+    </div>
+  </section>
+
+  <!-- PENGATURAN -->
+  <section id="pengaturan" class="band">
+    <div class="wrap">
+      <h2>Pengaturan</h2>
+      <p class="intro">Semua pengaturan ada di panel JALA dan tersimpan otomatis.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Pengaturan</th><th scope="col">Pilihan</th><th scope="col">Keterangan</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Sumber</th><td>Enam daftar SRIKANDI</td><td>Centang daftar yang ingin disalin.</td></tr>
+            <tr><th scope="row">Rentang tanggal</th><td>Semua, tahun ini, bulan ini, minggu ini, 30 hari terakhir, pilih tanggal</td><td>Mengacu pada Tanggal Naskah di SRIKANDI.</td></tr>
+            <tr><th scope="row">Kode klasifikasi</th><td>Contoh: <code>PP, HK.02</code></td><td>Hanya naskah yang kodenya diawali kode tersebut.</td></tr>
+            <tr><th scope="row">Kata kunci hal</th><td>Contoh: <code>surat tugas, undangan</code></td><td>Dicari pada hal dan nomor naskah.</td></tr>
+            <tr><th scope="row">Susunan folder</th><td>Per tahun, atau per tahun dan bulan</td><td>Contoh per bulan: <code>2026/11-November/</code></td></tr>
+            <tr><th scope="row">Pantau naskah baru</th><td>Mati, 30 menit, 1 jam, 3 jam, 6 jam, sekali sehari</td><td>Notifikasi desktop dan angka merah di ikon JALA.</td></tr>
+            <tr><th scope="row">Langsung unduh naskah baru</th><td>Ya atau tidak</td><td>Naskah baru langsung masuk folder arsip.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- BANTUAN -->
+  <section id="bantuan" class="band alt">
+    <div class="wrap narrow">
+      <h2>Bantuan</h2>
+      <div class="faq">
+        <details><summary>Apakah JALA memakai AI atau perlu langganan?</summary><p>Tidak. JALA adalah skrip otomasi biasa yang berjalan di Chrome. Gratis, tanpa akun tambahan, dan tanpa mengirim naskah ke layanan AI mana pun.</p></details>
+        <details><summary>Apakah JALA menyimpan login atau kata sandi saya?</summary><p>Tidak. JALA memakai sesi login SRIKANDI yang sedang aktif di tab Anda, hanya di memori tab itu. Yang disimpan hanyalah pengaturan dan daftar ID naskah yang sudah dilihat atau diunduh.</p></details>
+        <details><summary>Naskah apa saja yang bisa disalin?</summary><p>Hanya naskah yang memang bisa Anda lihat di SRIKANDI dengan akun Anda: yang ditujukan, ditembuskan, didisposisikan, diverifikasi, ditandatangani, atau dibuat oleh Anda. JALA tidak membuka akses baru.</p></details>
+        <details><summary>Label sumber tetap "buka sekali"</summary><p>Klik tautan "buka" di sebelah sumber tersebut, atau buka daftarnya dari menu SRIKANDI. JALA mempelajari alamat daftar saat halaman itu dimuat dan mengingatnya untuk seterusnya.</p></details>
+        <details><summary>Muncul notifikasi "Sesi SRIKANDI habis"</summary><p>Login ulang ke SRIKANDI di Chrome. Pemeriksaan berikutnya akan berjalan normal. JALA tidak bisa login sendiri karena memang tidak menyimpan kata sandi.</p></details>
+        <details><summary>Notifikasi tidak muncul</summary><p>Klik Tes notifikasi di panel JALA. Kalau tetap tidak muncul, buka Settings Windows, lalu System, Notifications, dan pastikan Google Chrome aktif serta mode Do not disturb mati.</p></details>
+        <details><summary>Pemeriksaan otomatis tidak berjalan</summary><p>Pemeriksaan hanya berjalan saat komputer menyala dan Chrome terbuka. Kalau laptop tidur atau Chrome ditutup, pemeriksaan dilanjutkan pada jadwal berikutnya.</p></details>
+        <details><summary>Ada naskah berstatus DILEWATI di indeks</summary><p>Naskah tersebut dilindungi OTP di SRIKANDI. Buka dan unduh secara manual dari SRIKANDI.</p></details>
+        <details><summary>Unduhan terasa lambat</summary><p>Lihat log di panel: setiap baris menampilkan waktu mengambil alamat file dan waktu unduh. Naikkan "Unduhan bersamaan" menjadi 3 bila koneksi stabil, dan biarkan tab SRIKANDI terlihat selama unduhan penuh.</p></details>
+        <details><summary>Apakah salinan ini menggantikan pemberkasan resmi?</summary><p>Tidak. JALA membuat salinan cadangan pribadi. Arsip dinamis yang sah tetap dikelola melalui menu Pemberkasan Arsip Aktif di SRIKANDI.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- KEAMANAN & BATASAN -->
+  <section class="band">
+    <div class="wrap two">
+      <div>
+        <h2>Keamanan</h2>
+        <ul class="plain">
+          <li>Hanya membaca daftar naskah, master klasifikasi, dan alamat unduhan berkas.</li>
+          <li>Tidak pernah memanggil fungsi tanda tangan, verifikasi, disposisi, pemberkasan, atau hapus.</li>
+          <li>Unduhan hanya diterima dari penyimpanan berkas SRIKANDI, dan perintah hanya diterima dari halaman SRIKANDI.</li>
+          <li>Kode sumber terbuka dan bisa diperiksa siapa saja.</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Batasan</h2>
+        <ul class="plain">
+          <li>Perlu Google Chrome atau browser berbasis Chromium di komputer.</li>
+          <li>Pemantauan berjalan hanya saat komputer menyala dan Chrome terbuka.</li>
+          <li>Bila SRIKANDI mengubah sistemnya, JALA perlu diperbarui.</li>
+          <li>JALA bukan produk resmi ANRI dan tidak berafiliasi dengan pengelola SRIKANDI.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="who">
+      <img src="assets/jala-icon.svg" alt="" width="40" height="40">
+      <div>
+        <p class="dev">Dikembangkan oleh <b>Deddy Eko Heryanto, S.T.</b></p>
+        <p>JFT Pranata Komputer Ahli Muda, Perpustakaan Poltekkes Kemenkes Palangka Raya</p>
+      </div>
+    </div>
+    <p class="legal">JALA 1.2.0, lisensi MIT. SRIKANDI adalah aplikasi milik Arsip Nasional Republik Indonesia. JALA adalah alat arsip pribadi yang dibuat secara mandiri dan tidak berafiliasi dengan ANRI.</p>
+  </div>
+</footer>
+
+<script src="assets/chapters.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
