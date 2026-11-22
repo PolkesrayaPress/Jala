@@ -1,4 +1,4 @@
-/* JALA Arsip v1.4.3 - berjalan di halaman SRIKANDI (MAIN world).
+/* JALA Arsip v1.5.1 - berjalan di halaman SRIKANDI (MAIN world).
  * Prinsip:
  *  - Hanya membaca: daftar naskah, master klasifikasi, dan URL unduhan berkas.
  *    Tidak pernah memanggil endpoint tanda tangan, verifikasi, disposisi, atau pemberkasan.
@@ -23,6 +23,7 @@
   const klCache = new Map();
   let settings = Object.assign({}, C.DEFAULT_SETTINGS);
   let running = false, stopFlag = false, lastCheck = null;
+  let consent = false;   // persetujuan penyimpanan (v1.5); unduhan apa pun menunggu ini
 
   /* ---------- 1. Belajar dari panggilan aplikasi ---------- */
   function addTemplate(path, url, persist) {
@@ -96,7 +97,8 @@
 
   async function init() {
     try {
-      const kv = await bridge('getKV', { keys: ['srk_templates', 'srk_settings', 'srk_last_check'] });
+      const kv = await bridge('getKV', { keys: ['srk_templates', 'srk_settings', 'srk_last_check', 'srk_consent'] });
+      consent = !!(kv.srk_consent && kv.srk_consent.v === C.CONSENT_VERSION);
       const st = kv.srk_templates || {};
       Object.keys(st).forEach(p => (st[p] || []).forEach(u => { if (C.isValidTemplate(p, u)) addTemplate(p, u, false); }));
       settings = C.sanitizeSettings(kv.srk_settings);
@@ -196,9 +198,14 @@
       const key = C.dedupKey(it);
       if (!it.file || !it.filePath) { rec.result = 'TIDAK ADA FILE'; rec.note = 'Naskah tanpa berkas di SRIKANDI'; ctx.stats.fail++; }
       else if (it.otp) { rec.result = 'DILEWATI'; rec.note = 'Naskah dilindungi OTP, unduh manual'; ctx.stats.skip++; }
+      else if (C.securityClass(it) === 'R') { rec.result = 'DILEWATI'; rec.note = 'Naskah Rahasia tidak diunduh JALA'; ctx.stats.skip++; }
+      else if (C.securityClass(it) === 'T' && !settings.terbatas) { rec.result = 'DILEWATI'; rec.note = 'Naskah Terbatas: aktifkan izin di panel bila tugas Anda memerlukannya'; ctx.stats.skip++; }
+      else if (!consent) { rec.result = 'DITUNDA'; rec.note = 'Persetujuan penyimpanan belum diberikan'; ctx.stats.skip++; }
       else if (ctx.seen.has(key)) { rec.result = 'DUPLIKAT'; rec.note = 'Sudah diproses dari daftar lain'; ctx.stats.dup++; }
       else if (ctx.done.has(key)) { ctx.seen.add(key); rec.result = 'SUDAH ADA'; rec.localPath = C.buildPath(it, rec.kl, settings.layout); ctx.stats.skip++; }
+      else if (ctx.cap && ctx.slots >= ctx.cap) { rec.result = 'DITUNDA'; rec.note = 'Batas ' + ctx.cap + ' unduhan per sesi tercapai'; ctx.stats.skip++; }
       else {
+        ctx.slots = (ctx.slots || 0) + 1;   // jatah sesi dipesan sebelum await agar batas tepat walau paralel
         ctx.seen.add(key);   // dipesan sebelum await agar unduhan paralel tidak ganda
         const t0 = Date.now();
         const url = await signedUrl(it);
@@ -238,12 +245,12 @@
     const started = Date.now();
     const records = [];
     const stats = { ok: 0, skip: 0, dup: 0, fail: 0, filtered: 0 };
-    const ctx = { seen: new Set(), done: new Set(), stats, fatal: null };
+    const ctx = { seen: new Set(), done: new Set(), stats, fatal: null, cap: Number(opts.maxRun) || 300, slots: 0 };
     const range = C.dateRange(opts.range, opts.from, opts.to);
     const klas = C.parseList(opts.klas), kws = C.parseList(opts.keyword);
     const known = [], completed = [];
     const pool = new Set();
-    let processed = 0;
+    let processed = 0, capHit = false;
     try {
       try { ctx.done = new Set(await bridge('getDone')); } catch (e) { log('Gagal membaca riwayat unduhan: ' + e.message); }
       log('Mulai. Filter: ' + C.describeFilter(opts) + '. Riwayat: ' + ctx.done.size + ' file.');
@@ -253,6 +260,7 @@
         log('Membaca ' + src.label + ' ...');
         for await (const row of iterateRows(src, opts.rows, Math.min(opts.delay, 1000))) {
           if (stopFlag || ctx.fatal) break outer;
+          if (ctx.slots >= ctx.cap) { capHit = true; break outer; }
           known.push(C.knownKey(src, row));
           const it = C.normalizeRow(src, row);
           if (!C.inRange(it, range) || !C.matchKeyword(it, kws)) { stats.filtered++; continue; }
@@ -269,7 +277,8 @@
           await sleep(opts.delay);
         }
         await Promise.all(pool);
-        if (!stopFlag && !ctx.fatal && !(opts.limit && processed >= opts.limit)) completed.push(src.key);
+        if (ctx.slots >= ctx.cap) capHit = true;
+        if (!stopFlag && !ctx.fatal && !capHit && !(opts.limit && processed >= opts.limit)) completed.push(src.key);
       }
     } catch (e) {
       log('Berhenti karena galat: ' + e.message);
@@ -277,6 +286,7 @@
       // Indeks dan catatan tetap disimpan walau proses berhenti di tengah (temuan audit #4).
       await Promise.all(pool);
       if (ctx.fatal) log('Berhenti: ' + ctx.fatal.message);
+      if (capHit) log('Batas ' + ctx.cap + ' unduhan per sesi tercapai. Klik Mulai unduh lagi untuk melanjutkan; naskah yang sudah ada dilewati.');
       try { await bridge('addKnown', { keys: known, baseline: completed }); } catch (e) { /* abaikan */ }
       await saveIndex(records, 'INDEKS_ARSIP');
       const menit = ((Date.now() - started) / 60000).toFixed(1);
@@ -323,7 +333,7 @@
               const it = C.normalizeRow(src, row);
               const kl = C.resolveKlasifikasi(it, await klasifikasi(it.klasifikasiId));
               const rec = newRec(it, kl);
-              if (settings.autoDownload) {
+              if (settings.autoDownload && consent) {
                 // Unduh otomatis mengikuti filter yang sama dengan unduhan manual (temuan audit #1).
                 if (autoCount >= MAX_AUTO) { rec.result = 'DITUNDA'; rec.note = 'Batas ' + MAX_AUTO + ' unduhan per pemeriksaan; gunakan Mulai unduh'; }
                 else if (C.inRange(it, range) && C.matchKeyword(it, kws) && C.matchKlas(kl.kode, klas)) {
@@ -335,7 +345,7 @@
                 } else { rec.result = 'TIDAK COCOK FILTER'; if (isRetry) retryDel.push(k); }
               }
               if (ctx.fatal) throw ctx.fatal;
-              if (isNew) out.newItems.push({ group: it.group, sourceShort: it.sourceShort, kode: kl.kode, nomor: it.nomor, hal: it.hal, tanggal: it.tanggal, result: rec.result || 'BARU' });
+              if (isNew) out.newItems.push({ group: it.group, sourceShort: it.sourceShort, kode: kl.kode, nomor: it.nomor, hal: C.securityClass(it) === 'R' ? '(naskah Rahasia)' : it.hal, tanggal: it.tanggal, result: rec.result || 'BARU' });
             }
             cursor = pg.next;
             // Lanjut ke halaman berikutnya hanya bila halaman ini masih berisi naskah baru (temuan audit #2).
@@ -388,6 +398,7 @@
       b.textContent = n ? 'siap' : 'buka sekali';
       b.className = 'tag ' + (n ? 'ok' : 'wait');
     });
+    $('#srk-consent').style.display = consent ? 'none' : 'block';
     $('#srk-go').disabled = running; $('#srk-stop').disabled = !running; $('#srk-check').disabled = running;
     const lc = $('#srk-last');
     if (lastCheck) lc.textContent = 'Pemeriksaan terakhir: ' + new Date(lastCheck.at).toLocaleString('id-ID') + (lastCheck.error ? ' (gagal: ' + lastCheck.error + ')' : ', ' + lastCheck.n + ' naskah baru');
@@ -403,6 +414,7 @@
       delay: Math.max(300, Number($('#srk-delay').value) || 800),
       rows: 50,
       monitor: $('#srk-mon').value, dailyAt: $('#srk-daily').value || '07:30',
+      terbatas: $('#srk-terbatas').checked, maxRun: $('#srk-maxrun').value,
       autoDownload: $('#srk-autodl').checked, autoOpenTab: $('#srk-autotab').checked, notifDetail: $('#srk-ndetail').checked,
       theme: settings.theme
     };
@@ -423,6 +435,8 @@
     $('#srk-klas').value = settings.klas; $('#srk-kw').value = settings.keyword;
     $('#srk-layout').value = settings.layout; $('#srk-conc').value = String(settings.conc); $('#srk-delay').value = settings.delay;
     $('#srk-mon').value = settings.monitor; $('#srk-daily').value = settings.dailyAt;
+    $('#srk-terbatas').checked = settings.terbatas; $('#srk-maxrun').value = settings.maxRun;
+    $('#srk-consent').style.display = consent ? 'none' : 'block';
     $('#srk-autodl').checked = settings.autoDownload; $('#srk-autotab').checked = settings.autoOpenTab; $('#srk-ndetail').checked = settings.notifDetail;
     toggleFields(); refreshPanel();
   }
@@ -476,18 +490,28 @@
       #srk-panel .credit{white-space:pre-line;font-size:10.5px;line-height:1.45;color:var(--muted);border-top:1px solid var(--line);margin-top:10px;padding-top:8px}
       #srk-panel .sub{font-size:12px;color:var(--muted);margin:0 0 4px}
       #srk-panel .warn-box{display:none;background:#FFD21F;color:#111111;border:2px solid #111111;border-radius:8px;padding:8px 10px;font-weight:600;margin:6px 0}
+      #srk-panel .consent{display:none;background:var(--soft);border:2px solid #FFD21F;border-radius:8px;padding:8px 10px;margin:6px 0}
+      #srk-panel .consent ol{margin:4px 0 6px 18px;padding:0}
+      #srk-panel .consent li{margin:2px 0;line-height:1.4}
       #srk-session.ok{color:var(--ok-ink)} #srk-session.wait{color:var(--wait-ink)}`));
 
     const fab = el('button', { id: 'srk-fab', title: 'JALA Arsip: salinan arsip pribadi pengguna SRIKANDI' });
     fab.innerHTML = '<svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-4px;margin-right:6px"><path d="M8 2.6 L3 11.6 M8 2.6 L13 11.6 M8 2.6 V12.3 M4.9 8.2 Q8 9.4 11.1 8.2" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><circle cx="3.2" cy="12.2" r="1.7" fill="#CDDC29"/><circle cx="8" cy="13.1" r="1.7" fill="#CDDC29"/><circle cx="12.8" cy="12.2" r="1.7" fill="#CDDC29"/></svg>JALA';
     panel = el('div', { id: 'srk-panel' });
     const themeBtn = el('button', { id: 'srk-theme', type: 'button' }, 'Tema gelap');
-    const headTxt = el('div'); headTxt.append(el('h3', {}, 'JALA Arsip v1.4.3'), el('div', { className: 'sub' }, 'Salinan arsip pribadi untuk pengguna SRIKANDI'));
+    const headTxt = el('div'); headTxt.append(el('h3', {}, 'JALA Arsip v1.5.1'), el('div', { className: 'sub' }, 'Salinan arsip pribadi untuk pengguna SRIKANDI'));
     const head = el('div', { className: 'head' }); head.append(headTxt, themeBtn);
     panel.append(head,
       el('div', { className: 'note' }, 'Hanya membaca. Salinan PDF disimpan di Downloads/' + C.ROOT_FOLDER + '.'),
       el('div', { id: 'srk-session', className: 'row' }),
       el('div', { id: 'srk-dup', className: 'warn-box' }, 'Terdeteksi lebih dari satu JALA terpasang di Chrome. Buka chrome://extensions, hapus (Remove) yang lama, lalu muat ulang halaman ini. Riwayat bisa dipindahkan lewat Ekspor/Impor di halaman Opsi.'));
+
+    // Persetujuan penyimpanan (v1.5)
+    const consentBox = el('div', { id: 'srk-consent', className: 'consent' }); consentBox.setAttribute('role', 'region'); consentBox.setAttribute('aria-label', 'Persetujuan penyimpanan');
+    const ol = el('ol'); C.CONSENT_TEXT.forEach(t => ol.append(el('li', {}, t)));
+    const agree = el('button', { id: 'srk-agree', className: 'act primary', type: 'button' }, 'Saya mengerti dan setuju');
+    consentBox.append(el('strong', {}, 'Sebelum mengunduh, baca dan setujui:'), ol, agree);
+    panel.append(consentBox);
 
     // Sumber
     panel.append(el('h4', {}, '1. Sumber naskah'));
@@ -510,6 +534,11 @@
     panel.append(row(el('span', {}, 'Susunan folder'), layout));
     const conc = opt(el('select', { id: 'srk-conc' }), [['1', '1'], ['2', '2'], ['3', '3']]);
     panel.append(row(el('span', {}, 'Unduhan bersamaan'), conc, el('span', {}, 'Jeda (ms)'), el('input', { type: 'number', id: 'srk-delay', value: 800, min: 300 })));
+    const maxRun = opt(el('select', { id: 'srk-maxrun' }), [['100', '100'], ['300', '300'], ['500', '500'], ['1000', '1000']]);
+    panel.append(row(el('span', {}, 'Batas unduhan per sesi'), maxRun));
+    const terb = el('input', { type: 'checkbox', id: 'srk-terbatas' });
+    panel.append(row(terb, el('label', { htmlFor: 'srk-terbatas' }, 'Unduh juga naskah Terbatas (aktifkan hanya bila tugas Anda memerlukannya)')));
+    panel.append(el('div', { className: 'note' }, 'Naskah Rahasia dan naskah ber-OTP tidak pernah diunduh JALA.'));
     const test = el('input', { type: 'checkbox', id: 'srk-test', checked: true });
     panel.append(row(test, el('label', { htmlFor: 'srk-test' }, 'Mode uji: berhenti setelah 5 naskah')));
     const go = el('button', { id: 'srk-go', className: 'act primary' }, 'Mulai unduh');
@@ -545,8 +574,15 @@
     };
     fab.onclick = () => { panel.style.display = panel.style.display === 'block' ? 'none' : 'block'; refreshPanel(); };
     panel.querySelectorAll('input,select').forEach(x => { if (x.id !== 'srk-test') x.addEventListener('change', saveSettings); });
+    const needConsent = () => { $('#srk-consent').style.display = 'block'; const cb = $('#srk-consent'); if (cb.scrollIntoView) cb.scrollIntoView({ block: 'nearest' }); log('Setujui ketentuan penyimpanan di atas sebelum mengunduh.'); };
+    agree.onclick = async () => {
+      try { await bridge('setConsent', { v: C.CONSENT_VERSION }); consent = true; refreshPanel(); log('Persetujuan penyimpanan dicatat.'); }
+      catch (e) { log('Gagal mencatat persetujuan: ' + e.message); }
+    };
+    autodl.addEventListener('change', () => { if (autodl.checked && !consent) { autodl.checked = false; saveSettings(); needConsent(); } });
     go.onclick = () => {
       if (running) return;
+      if (!consent) { needConsent(); return; }
       if (!session) { log('Sesi belum terdeteksi. Buka salah satu halaman daftar naskah, lalu coba lagi.'); return; }
       settings = readPanel();
       const o = Object.assign({}, settings, { limit: test.checked ? 5 : 0 });

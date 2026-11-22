@@ -1,4 +1,4 @@
-# JALA Arsip v1.4.3: Jaring Arsip Lokal Otomatis
+# JALA Arsip v1.5.1: Jaring Arsip Lokal Otomatis
 
 **Alat arsip pribadi untuk pengguna SRIKANDI.** Setiap pengguna memakai akun SRIKANDI-nya sendiri, dan salinan naskah tersimpan di laptopnya sendiri.
 
@@ -49,6 +49,10 @@ Riwayat unduhan versi lama tetap dipakai, sehingga file yang sudah terunduh tida
 | Kata kunci hal | mis. `surat tugas, undangan` | Dicari di Hal dan Nomor. Kosong berarti semua |
 | Susunan folder | Tahun/Kelompok/Klasifikasi, atau Tahun/Bulan/Kelompok/Klasifikasi | Contoh bulan: `2026/11-November/` |
 | Unduhan bersamaan | 1 sampai 3 | 2 adalah titik tengah antara kecepatan dan beban server |
+| Batas unduhan per sesi | 100, 300, 500, 1000 (bawaan 300) | Satu klik Mulai unduh berhenti setelah jumlah ini. Klik lagi untuk melanjutkan; naskah yang sudah ada dilewati |
+| Unduh juga naskah Terbatas | Ya atau tidak (bawaan tidak) | Aktifkan hanya bila tugas Anda memerlukannya. Naskah Rahasia dan ber-OTP tidak pernah diunduh |
+
+**Persetujuan penyimpanan.** Sebelum unduhan pertama, panel menampilkan lima ketentuan: salinan untuk keperluan kerja sendiri, disimpan di perangkat dinas yang terkunci dan sebaiknya terenkripsi, tidak disinkronkan ke cloud pribadi, naskah Rahasia dan ber-OTP tidak diunduh, dan pemakaian mengikuti kebijakan akses instansi. Tanpa persetujuan, JALA tidak mengunduh apa pun (pemantauan tetap bisa memberi notifikasi). Persetujuan dapat dicabut di halaman Opsi.
 
 Pengaturan tersimpan otomatis. Log menampilkan waktu tiap file (`url x dtk, unduh y dtk`) supaya mudah melihat bagian mana yang lambat.
 
@@ -84,7 +88,7 @@ Cara kerjanya:
 ## 5. Batasan
 
 - Cakupan mengikuti hak akses akun. Role *User* hanya melihat naskah yang ditujukan, ditembuskan, didisposisikan, atau dibuat oleh Anda.
-- Naskah ber-OTP dilewati dan tercatat "DILEWATI" di indeks.
+- Naskah ber-OTP, naskah Rahasia, dan (kecuali diizinkan) naskah Terbatas dilewati dan tercatat "DILEWATI" di indeks. Klasifikasi keamanan dibaca dari kolom **Sifat Naskah** SRIKANDI (`sifat_naskah_nama`, terverifikasi pada daftar naskah masuk dan keluar), lalu dari kode R/T pada nomor naskah (pola `.../R/2026`). Penanda OTP dibaca dari `effective_otp_protected` (naskah masuk) dan pengaturan OTP pada sifat naskah (naskah masuk dan keluar).
 - Ini salinan cadangan, bukan pemberkasan resmi. Arsip dinamis yang sah tetap berada di Pemberkasan Arsip Aktif SRIKANDI.
 - Selama unduhan penuh berjalan, jangan tutup tab SRIKANDI. Pindah tab atau membuka Word boleh, tetapi tab latar belakang bisa lebih lambat. Kalau tab tertutup, antrean berhenti; klik Mulai unduh lagi dan file yang sudah ada akan dilewati.
 - Kalau SRIKANDI mengubah alamat API-nya, ekstensi perlu diperbarui.
@@ -96,7 +100,10 @@ Cara kerjanya:
 - Unduhan hanya diterima dari `s3.arsip.go.id`. Perintah hanya diterima dari halaman `srikandi.arsip.go.id`.
 - Riwayat unduhan diatur di halaman **Opsi** (klik kanan ikon JALA Arsip, pilih Opsi). Menghapus riwayat tidak menghapus file di laptop.
 - Header sesi hanya dikirim ke `api.arsip.go.id`. Halaman web hanya bisa mengubah pengaturan yang tervalidasi.
+- Alamat unduhan sementara dan nama berkas penyimpanan SRIKANDI tidak dicatat di indeks maupun log.
 
 ## 7. Kolom indeks CSV
 
-No, Sumber, Kelompok, Tahun, Tanggal Naskah, Nomor, Hal, Pengirim/Pihak, Kode Klasifikasi, Nama Klasifikasi, Asal Klasifikasi, Status, File di SRIKANDI, Lokasi Lokal, Hasil (BERHASIL / SUDAH ADA / DUPLIKAT / DILEWATI / TIDAK ADA FILE / GAGAL), Catatan.
+No, Sumber, Kelompok, Tahun, Tanggal Naskah, Nomor, Hal, Pengirim/Pihak, Kode Klasifikasi, Nama Klasifikasi, Asal Klasifikasi, Status, Lokasi Lokal, Hasil (BERHASIL / SUDAH ADA / DUPLIKAT / DILEWATI / DITUNDA / TIDAK ADA FILE / GAGAL), Catatan.
+
+Sejak 1.5.0 indeks tidak lagi memuat nama berkas di penyimpanan SRIKANDI, agar berkas indeks yang terbagi tidak membuka jalan ke berkas aslinya.

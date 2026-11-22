@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   const ALLOWED = new Set(['download', 'saveText', 'getDone', 'markDone', 'updRetry', 'getKV', 'setKV',
-    'saveTemplate', 'addKnown', 'applySchedule', 'checkResult', 'testNotify']);
+    'saveTemplate', 'addKnown', 'applySchedule', 'checkResult', 'testNotify', 'setConsent']);
 
   // Halaman -> ekstensi
   window.addEventListener('message', ev => {

@@ -34,7 +34,7 @@ JALA adalah **alat arsip pribadi** bagi setiap pengguna SRIKANDI. Setiap orang m
 > **ID ekstensi tetap: `bgpfanedbfemacdgbgbnhmjmgaaahagp`.** Memasang dari folder lain menggantikan JALA 1.4 atau lebih baru yang sudah terpasang. Hapus dulu versi sebelum 1.4 di `chrome://extensions`, karena versi lama memakai ID berbeda dan akan tetap terpasang berdampingan.
 
 
-1. Unduh [`docs/download/jala-arsip-v1.4.3.zip`](docs/download/jala-arsip-v1.4.3.zip), lalu ekstrak ke folder tetap pilihan Anda.
+1. Unduh [`docs/download/jala-arsip-v1.5.1.zip`](docs/download/jala-arsip-v1.5.1.zip), lalu ekstrak ke folder tetap pilihan Anda.
 2. Buka `chrome://extensions`, aktifkan **Developer mode**, klik **Load unpacked**, lalu pilih folder `jala`.
 3. Login ke SRIKANDI, tekan F5, lalu klik tombol **JALA** di kanan bawah.
 
@@ -45,6 +45,7 @@ Panduan lengkap dan video ada di situs dokumentasi (folder `docs/`) dan di [`ext
 | Kondisi | Yang terjadi |
 |---|---|
 | Pindah tab atau membuka Word | Tetap berjalan, tab latar belakang bisa lebih lambat |
+| Batas unduhan per sesi tercapai | Unduhan berhenti dengan pesan di log. Klik Mulai unduh lagi untuk melanjutkan |
 | Tab SRIKANDI ditutup saat unduh massal | Antrean berhenti. Klik Mulai unduh lagi, file yang sudah ada dilewati |
 | Tab tertutup saat jadwal pemeriksaan | Bila opsi aktif, JALA membuka tab SRIKANDI di latar belakang, memeriksa, lalu menutupnya |
 | Sesi SRIKANDI habis | Notifikasi "Sesi SRIKANDI habis". Login ulang secara manual |
@@ -57,6 +58,9 @@ Panduan lengkap dan video ada di situs dokumentasi (folder `docs/`) dan di [`ext
 - Halaman web hanya bisa mengubah pengaturan yang sudah divalidasi. Menghapus, mengekspor, dan mengimpor riwayat hanya bisa dari halaman Opsi ekstensi.
 - Token sesi dikunci pada token pertama di setiap halaman. Bila token berubah, JALA berhenti dan meminta halaman dimuat ulang.
 - Hanya lima jenis permintaan baca ke `api.arsip.go.id` yang diizinkan (daftar naskah, master klasifikasi, alamat unduhan, isi berkas naskah masuk). Permintaan lain ditolak sebelum dikirim.
+- Naskah Rahasia dan ber-OTP tidak pernah diunduh. Naskah Terbatas hanya bila pengguna mengaktifkannya.
+- Unduhan pertama menunggu persetujuan penyimpanan (perangkat dinas, terkunci, tidak disinkronkan ke cloud pribadi). Satu sesi unduh dibatasi 100 sampai 1000 berkas.
+- Indeks CSV tidak memuat alamat unduhan maupun nama berkas penyimpanan SRIKANDI.
 - Tidak ada layanan AI, server perantara, atau analitik.
 
 ## Struktur repositori
@@ -84,6 +88,8 @@ JFT Pranata Komputer Ahli Muda, Perpustakaan Poltekkes Kemenkes Palangka Raya
 
 ## Riwayat versi
 
+- **1.5.1**: deteksi sifat naskah disesuaikan dengan data SRIKANDI yang sudah diperiksa langsung (kolom Sifat Naskah pada naskah masuk dan keluar); penanda OTP kini juga dibaca dari pengaturan sifat naskah, sehingga naskah keluar ber-OTP ikut dilewati.
+- **1.5.0**: patch keamanan arsip, tanpa fitur baru. Persetujuan penyimpanan sebelum unduhan pertama; naskah Rahasia tidak pernah diunduh dan naskah Terbatas hanya bila diizinkan; batas unduhan per sesi (bawaan 300); indeks CSV tidak lagi memuat nama berkas penyimpanan SRIKANDI; perihal naskah Rahasia disembunyikan di notifikasi.
 - **1.4.3**: teks di samping kotak centang panel kini sejajar dan membungkus di sampingnya, tidak turun ke baris baru.
 - **1.4.2**: tombol "Buka daftar" kuning yang jelas terlihat di panel; baris kredit dipecah agar tidak terpotong; peringatan agar folder JALA tidak dipindah atau dihapus di situs, README, panduan, dan halaman Opsi.
 - **1.4.1**: judul bagian panel dan halaman Opsi berwarna kuning seragam dengan tulisan hitam; halaman Opsi mengikuti tema terang/gelap; perbaikan tautan unduhan di README.

@@ -1,4 +1,4 @@
-/* JALA Arsip v1.4.3 - service worker.
+/* JALA Arsip v1.5.1 - service worker.
  * Unduhan, penyimpanan riwayat/pengaturan, jadwal pemeriksaan, notifikasi desktop. */
 'use strict';
 importScripts('core.js');
@@ -184,8 +184,9 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
     const ops = {
       resetDone: () => serial(() => chrome.storage.local.remove('srk_done_keys')).then(() => true),
       resetKnown: () => serial(() => chrome.storage.local.remove(['srk_known', 'srk_baseline', 'srk_retry', 'srk_retry_dead'])).then(() => true),
+      resetConsent: () => serial(() => chrome.storage.local.remove('srk_consent')).then(() => true),
       resetTemplates: () => serial(() => chrome.storage.local.remove('srk_templates')).then(() => true),
-      stats: async () => ({ done: ((await get('srk_done_keys')) || []).length, known: ((await get('srk_known')) || []).length, retry: Object.keys((await get('srk_retry')) || {}).length, dead: ((await get('srk_retry_dead')) || []).length, templates: Object.values((await get('srk_templates')) || {}).reduce((a, b) => a + b.length, 0), last: (await get('srk_last_check')) || null, id: chrome.runtime.id, version: chrome.runtime.getManifest().version }),
+      stats: async () => ({ done: ((await get('srk_done_keys')) || []).length, known: ((await get('srk_known')) || []).length, retry: Object.keys((await get('srk_retry')) || {}).length, dead: ((await get('srk_retry_dead')) || []).length, templates: Object.values((await get('srk_templates')) || {}).reduce((a, b) => a + b.length, 0), last: (await get('srk_last_check')) || null, consent: (await get('srk_consent')) || null, id: chrome.runtime.id, version: chrome.runtime.getManifest().version }),
       exportData: async () => ({ app: 'JALA Arsip', format: 1, version: chrome.runtime.getManifest().version, exported: new Date().toISOString(),
         data: await chrome.storage.local.get(['srk_done_keys', 'srk_known', 'srk_baseline', 'srk_settings', 'srk_templates']) }),
       importData: () => serial(async () => {
@@ -215,7 +216,8 @@ chrome.runtime.onMessage.addListener((msg, sender, send) => {
     saveText: () => saveText(p.filename, p.text, p.mime),
     getDone: async () => (await get('srk_done_keys')) || [],
     markDone: () => addToSet('srk_done_keys', p.keys),
-    getKV: async () => onlySrk(await chrome.storage.local.get((p.keys || []).filter(k => ['srk_templates', 'srk_settings', 'srk_last_check', 'srk_known', 'srk_baseline', 'srk_retry', 'srk_retry_dead'].includes(k)))),
+    getKV: async () => onlySrk(await chrome.storage.local.get((p.keys || []).filter(k => ['srk_templates', 'srk_settings', 'srk_last_check', 'srk_known', 'srk_baseline', 'srk_retry', 'srk_retry_dead', 'srk_consent'].includes(k)))),
+    setConsent: async () => { if (!p || p.v !== C.CONSENT_VERSION) throw new Error('Versi persetujuan tidak dikenal'); await serial(() => set({ srk_consent: { v: C.CONSENT_VERSION, at: Date.now() } })); return true; },
     setKV: () => serial(() => set({ srk_settings: C.sanitizeSettings(p.obj && p.obj.srk_settings) })).then(() => true),
     saveTemplate: () => saveTemplate(p.path, p.url),
     addKnown: async () => { await addToSet('srk_known', p.keys); await addToSet('srk_baseline', p.baseline); return true; },

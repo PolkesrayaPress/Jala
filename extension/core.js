@@ -1,4 +1,4 @@
-/* JALA Arsip v1.4.3 (Jaring Arsip Lokal Otomatis) - fungsi murni (tanpa akses jaringan).
+/* JALA Arsip v1.5.1 (Jaring Arsip Lokal Otomatis) - fungsi murni (tanpa akses jaringan).
  * Dipakai oleh agent.js (halaman), background.js (service worker), dan diuji dengan Node. */
 (function (root) {
   'use strict';
@@ -29,12 +29,14 @@
     monitor: 'off',        // off | 30 | 60 | 180 | 360 | daily
     dailyAt: '07:30',
     autoDownload: false,
+    terbatas: false,       // unduh juga naskah berklasifikasi Terbatas (Rahasia tidak pernah)
+    maxRun: '300',         // batas unduhan per sesi Mulai unduh
     autoOpenTab: true,
     notifDetail: true,     // tampilkan perihal naskah di notifikasi
     theme: 'auto'          // auto | light | dark untuk panel
   };
 
-  const ENUMS = { range: ['all', 'year', 'month', 'week', '30d', 'custom'], layout: ['year', 'month'], monitor: ['off', '30', '60', '180', '360', 'daily'], theme: ['auto', 'light', 'dark'] };
+  const ENUMS = { range: ['all', 'year', 'month', 'week', '30d', 'custom'], layout: ['year', 'month'], monitor: ['off', '30', '60', '180', '360', 'daily'], theme: ['auto', 'light', 'dark'], maxRun: ['100', '300', '500', '1000'] };
   const DATE_RE = /^(\d{4}-\d{2}-\d{2})?$/;
 
   // Hanya menerima pengaturan yang dikenal dengan tipe yang benar; selebihnya memakai nilai bawaan.
@@ -52,7 +54,7 @@
     r.delay = Math.min(10000, Math.max(300, Number(o.delay) || d.delay));
     r.rows = 50;
     r.dailyAt = /^\d{1,2}:\d{2}$/.test(String(o.dailyAt || '')) ? String(o.dailyAt) : d.dailyAt;
-    ['autoDownload', 'autoOpenTab', 'notifDetail'].forEach(k => { r[k] = typeof o[k] === 'boolean' ? o[k] : d[k]; });
+    ['autoDownload', 'autoOpenTab', 'notifDetail', 'terbatas'].forEach(k => { r[k] = typeof o[k] === 'boolean' ? o[k] : d[k]; });
     return r;
   }
 
@@ -203,9 +205,41 @@
       klasifikasiNama: n.klasifikasi_nama || '',
       file: n.file || null,
       filePath: n.file_path || null,
-      otp: !!n.effective_otp_protected
+      // effective_otp_protected hanya ada di naskah masuk; sifat_naskah.otp_protected ada di keduanya (dicek 23-11-2026)
+      otp: !!n.effective_otp_protected || !!(n.sifat_naskah && typeof n.sifat_naskah === 'object' && n.sifat_naskah.otp_protected === true),
+      keamanan: securityText(n)
     };
   }
+
+  /* Klasifikasi keamanan naskah. Di data daftar SRIKANDI (dicek 23-11-2026, naskah masuk dan keluar) ada di
+     sifat_naskah_nama dan sifat_naskah.sifat_naskah. Dibaca dari kolom teks yang namanya memuat sifat/keamanan/kerahasiaan, lalu dari kode R/T pada nomor naskah
+     (pola tata naskah: .../R/2026 atau .../T/2026). Hasil: 'R' (Rahasia/Sangat Rahasia), 'T' (Terbatas), '' (lainnya). */
+  function securityText(n) {
+    const out = [];
+    Object.keys(n || {}).forEach(k => {
+      if (!/sifat|keamanan|kerahasiaan|klasifikasi_akses/i.test(k)) return;
+      const v = n[k];
+      if (typeof v === 'string') out.push(v);
+      else if (v && typeof v === 'object') ['sifat_naskah', 'nama', 'name', 'label', 'kode'].forEach(f => { if (typeof v[f] === 'string') out.push(v[f]); });
+    });
+    return out.join(' | ').slice(0, 200);
+  }
+  function securityClass(it) {
+    const t = String((it && it.keamanan) || '');
+    if (/rahasia/i.test(t)) return 'R';
+    if (/terbatas/i.test(t)) return 'T';
+    const m = /\/(R|T)\/\d{4}\s*$/.exec(String((it && it.nomor) || ''));
+    return m ? m[1] : '';
+  }
+
+  const CONSENT_VERSION = 1;
+  const CONSENT_TEXT = [
+    'Salinan ini untuk keperluan kerja Anda sendiri, bukan untuk dibagikan kepada pihak yang tidak berhak.',
+    'Simpan di perangkat dinas yang terkunci sandi, sebaiknya dengan enkripsi disk (BitLocker atau FileVault).',
+    'Jangan sinkronkan folder ' + 'SRIKANDI_ARSIP ke penyimpanan cloud pribadi.',
+    'Naskah Rahasia dan naskah ber-OTP tidak diunduh. Naskah Terbatas hanya bila Anda mengaktifkannya.',
+    'Pemakaian JALA mengikuti kebijakan akses arsip instansi Anda.'
+  ];
 
   function resolveKlasifikasi(item, master) {
     if (master && master.kode) return { kode: master.kode, nama: master.nama || item.klasifikasiNama, asal: 'master SRIKANDI' };
@@ -274,7 +308,7 @@
 
   /* ---------- Indeks CSV ---------- */
   const CSV_COLS = ['No', 'Sumber', 'Kelompok', 'Tahun', 'Tanggal Naskah', 'Nomor', 'Hal', 'Pengirim/Pihak',
-    'Kode Klasifikasi', 'Nama Klasifikasi', 'Asal Klasifikasi', 'Status', 'File di SRIKANDI', 'Lokasi Lokal', 'Hasil', 'Catatan'];
+    'Kode Klasifikasi', 'Nama Klasifikasi', 'Asal Klasifikasi', 'Status', 'Lokasi Lokal', 'Hasil', 'Catatan'];
 
   function csvCell(v) {
     let s = String(v == null ? '' : v);
@@ -286,14 +320,14 @@
     const lines = [CSV_COLS.join(';')];
     records.forEach((r, i) => {
       lines.push([i + 1, r.sourceLabel, r.group, yearOf(r.tanggal, r.createdAt), r.tanggal, r.nomor, r.hal, r.pihak,
-        r.kode || '', r.klNama || '', r.klAsal || '', r.status, r.file || '', r.localPath || '', r.result, r.note || '']
+        r.kode || '', r.klNama || '', r.klAsal || '', r.status, r.localPath || '', r.result, r.note || '']
         .map(csvCell).join(';'));
     });
     return '﻿' + lines.join('\r\n');
   }
 
   const api = {
-    sanitizeSettings, isValidTemplate, isSafeDownloadName, validateApi,
+    sanitizeSettings, securityClass, CONSENT_VERSION, CONSENT_TEXT, isValidTemplate, isSafeDownloadName, validateApi,
     ROOT_FOLDER, LIST_URL, SOURCES, DEFAULT_SETTINGS, BULAN,
     sanitize, kodeFromNomor, dateOf, yearOf, extOf,
     dateRange, inRange, parseList, matchKlas, matchKeyword, describeFilter,
